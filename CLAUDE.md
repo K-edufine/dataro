@@ -91,8 +91,8 @@ RLS로 같은 학급 데이터만 접근 가능하게 한다.
 - 군집별 추천 정보: 현재 만족형(신제품 광고, 인기 상품 추천), 미래 준비형(저축 일기, 계획 소비 사례), 균형형(가격 비교, 소비 후기)
 
 ## 개발 순서
-1. 프로젝트 뼈대 + ① 간식 모드 (DB 없이 동작) ← **현재 단계**
-2. 학급 코드·익명 입장, 교사 로그인, 6차시 설문
+1. 프로젝트 뼈대 + ① 간식 모드 (DB 없이 동작) ✅
+2. 학급 코드·익명 입장, 교사 로그인, 6차시 설문 ✅ ← **구현됨 (Supabase 연결 필요: docs/supabase-setup.md)**
 3. 7차시 군집화·K 비교·이름 저장
 4. 8~9차시 추천 정보, 1·2차 선택, AI 결과 비교
 5. 10차시 3차 선택·비교, 교사 전체 결과 화면
@@ -102,8 +102,19 @@ RLS로 같은 학급 데이터만 접근 가능하게 한다.
 src/
   app/            # 라우트: / , snack/(common, mine, input), 이후 tendency/, teacher/
   lib/kmeans/     # 순수 K-평균 (normalize, seeded-random, kmeans + 테스트)
-  lib/supabase/   # 2단계에서 채움
+  lib/supabase/   # 클라이언트(학생/교사 로그인 분리), 타입
+  lib/            # student-session, lessons, survey, snack-db, teacher
+supabase/migrations/  # SQL 스키마·RLS·RPC (대시보드 SQL Editor에서 실행)
+docs/             # 설정 안내
   data/           # 코드 안 JSON (간식, 설문, 시나리오, 추천)
   components/     # chart/, snack/, ui/
   types/
 ```
+
+## 2단계 구조 메모
+- 학생: Supabase **익명 로그인** + RPC `join_class(code)` → 익명 코드 s1, s2… (같은 브라우저는 재입장해도 같은 코드). 입장 정보는 localStorage(`dataro.studentSession`).
+- 교사: 이메일 로그인. 학생/교사 로그인 저장소는 `storageKey`로 분리(`getSupabase('student'|'teacher')`).
+- 쓰기는 RPC로만(`create_class`, `join_class`, `save_my_snacks`, `submit_survey`). 테이블 직접 insert 정책은 없다. 차시가 닫혀 있으면 RPC가 거부한다.
+- 차시 열고 닫기: `classes.open_lessons int[]` (교사 토글). 학생 화면은 10초마다/화면 복귀 시 새로 읽는다. `/snack/common`은 코드 없이 쓸 수 있다.
+- 설문 점수는 DB 함수가 계산(`submit_survey`)하고, `lib/survey.ts`의 `calcSurveyScores`가 같은 규칙으로 화면 표시·테스트에 쓰인다. 둘을 항상 같게 유지할 것.
+- 3단계 TODO: 7차시를 위해 같은 학급 설문 결과를 익명으로 읽는 정책/RPC 추가 (현재 학생은 본인 것만 읽음).
