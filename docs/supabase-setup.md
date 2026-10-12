@@ -9,7 +9,9 @@
 ## 2. 테이블·보안 규칙 만들기
 1. 왼쪽 메뉴 **SQL Editor → New query**
 2. 이 저장소의 `supabase/migrations/0001_init.sql` 내용을 전부 붙여 넣고 **Run**
-3. 오류 없이 "Success"가 나오면 끝입니다.
+3. "RLS를 켤까요?" 창이 뜨면 **"RLS 없이 실행(Run without RLS)"** 을 고르세요.
+   - 이 SQL이 네 테이블의 RLS를 직접 켭니다. "RLS 켜고 실행"을 고르면 대시보드가 함수 안의 `select ... into` 를 테이블 생성으로 오해해 SQL을 망가뜨립니다. (`unterminated dollar-quoted string` 오류)
+4. 오류 없이 "Success"가 나오면 끝입니다. Table Editor 에서 네 테이블에 RLS가 켜져 있는지 확인하세요.
 
 ## 3. 로그인 방식 설정 (Authentication)
 - **Sign In / Providers → Allow anonymous sign-ins** 를 **켭니다.** (학생 입장에 필요)
