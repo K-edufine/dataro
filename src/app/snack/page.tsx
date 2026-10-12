@@ -1,10 +1,10 @@
-import Link from "next/link";
+import { BackLink } from "@/components/ui/BackLink";
 import { LinkButton } from "@/components/ui/Button";
 
 export default function SnackHome() {
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col items-center justify-center gap-8 p-6 text-center">
-      <Link href="/" className="self-start text-base font-bold text-sky-700 underline">← 처음으로</Link>
+      <div className="self-start"><BackLink /></div>
       <h1 className="text-4xl font-extrabold">🍪 간식 모드</h1>
       <p className="text-xl text-slate-700">어떤 간식 데이터로 시작할까요?</p>
       <div className="grid w-full gap-4 sm:grid-cols-2">

@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button, LinkButton } from "@/components/ui/Button";
 import { LessonGate } from "@/components/student/LessonGate";
 import { getSupabase } from "@/lib/supabase/client";
+import { useMySurvey, type MySurvey } from "@/lib/use-my-survey";
 import type { StudentSession } from "@/lib/student-session";
 import { QUESTIONS, SCALE_LABELS, calcSurveyScores } from "@/lib/survey";
 
@@ -13,27 +14,18 @@ export function SurveyForm() {
 }
 
 function Loader({ session }: { session: StudentSession }) {
-  const [prev, setPrev] = useState<number[] | null | undefined>(undefined);
-
-  useEffect(() => {
-    let alive = true;
-    Promise.resolve(
-      getSupabase("student").from("survey_responses").select("answers").eq("student_id", session.studentId).maybeSingle(),
-    ).then(({ data }) => alive && setPrev(data ? data.answers : null))
-      .catch(() => alive && setPrev(null));
-    return () => {
-      alive = false;
-    };
-  }, [session]);
-
-  if (prev === undefined) return <main className="p-6 text-xl">불러오는 중…</main>;
-  return <Survey session={session} previous={prev} />;
+  const { loaded, survey } = useMySurvey(session);
+  if (!loaded) return <main className="p-6 text-xl">불러오는 중…</main>;
+  return <Survey session={session} previous={survey} />;
 }
 
-function Survey({ session, previous }: { session: StudentSession; previous: number[] | null }) {
-  const [answers, setAnswers] = useState<number[]>(() => previous ?? QUESTIONS.map(() => 0));
+function Survey({ session, previous }: { session: StudentSession; previous: MySurvey | null }) {
+  const [answers, setAnswers] = useState<number[]>(() => previous?.answers ?? QUESTIONS.map(() => 0));
   const [index, setIndex] = useState(0);
-  const [done, setDone] = useState<{ consume: number; save: number } | null>(null);
+  // 이미 제출한 학생은 결과 화면부터 보여 준다 (답 고치기 버튼으로 수정)
+  const [done, setDone] = useState<{ consume: number; save: number } | null>(
+    previous ? { consume: previous.consume, save: previous.save } : null,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 

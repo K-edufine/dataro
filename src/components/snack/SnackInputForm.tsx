@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { BackLink } from "@/components/ui/BackLink";
 import { Button } from "@/components/ui/Button";
 import { LessonGate } from "@/components/student/LessonGate";
 import { DEFAULT_SNACK_COUNT, MAX_SNACKS, MIN_SNACKS } from "@/lib/snack-data";
@@ -85,7 +85,7 @@ function Form({ session, initial }: { session: StudentSession; initial: Snack[] 
 
   return (
     <main className="mx-auto max-w-3xl p-4 sm:p-6">
-      <Link href="/student" className="text-base font-bold text-sky-700 underline">← 처음으로</Link>
+      <BackLink />
       <h1 className="mb-1 text-3xl font-extrabold">내 간식 데이터 만들기</h1>
       <p className="mb-4 text-lg text-slate-700">
         내가 좋아하는 간식을 써 보세요. 가격과 맛 점수(1~5점)도 정해요. 최소 {MIN_SNACKS}개가 필요해요.

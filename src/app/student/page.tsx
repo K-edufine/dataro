@@ -5,10 +5,12 @@ import { LinkButton } from "@/components/ui/Button";
 import { LESSONS } from "@/lib/lessons";
 import { clearStudentSession, useStudentSession } from "@/lib/student-session";
 import { useOpenLessons } from "@/lib/use-open-lessons";
+import { useMySurvey } from "@/lib/use-my-survey";
 
 export default function StudentHome() {
   const { session, hydrated } = useStudentSession();
   const open = useOpenLessons(session);
+  const { loaded: surveyLoaded, survey } = useMySurvey(session);
 
   if (!hydrated) return <main className="p-6 text-xl">불러오는 중…</main>;
   if (!session) {
@@ -41,6 +43,11 @@ export default function StudentHome() {
               <span className="flex-1 text-left">
                 <span className="block text-sm text-slate-600">{l.n}차시 · {l.mode === "snack" ? "간식 모드" : "성향 모드"}</span>
                 <span className="block text-xl font-extrabold">{l.title}</span>
+                {l.n === 6 && surveyLoaded && (
+                  <span className="mt-0.5 block text-base font-bold text-slate-700">
+                    {survey ? `내 점수: 소비 ${survey.consume.toFixed(2)} · 저축 ${survey.save.toFixed(2)}` : "아직 설문을 안 했어요"}
+                  </span>
+                )}
               </span>
               <span className="text-base font-bold">{status}</span>
             </>

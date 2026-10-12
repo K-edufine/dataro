@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import { BackLink } from "@/components/ui/BackLink";
 import { ScatterChart, niceTicks, type ChartPoint } from "@/components/chart/ScatterChart";
 import {
   CLUSTER_SHAPE_ICONS,
@@ -100,7 +100,7 @@ export function SnackLab({ snacks, title }: { snacks: Snack[]; title: string }) 
     <main className="mx-auto max-w-[1500px] p-4 sm:p-6">
       <header className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href="/snack" className="text-base font-bold text-sky-700 underline">← 처음으로</Link>
+          <BackLink />
           <h1 className="text-3xl font-extrabold">{title}</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2" role="group" aria-label="그룹 개수 고르기">
