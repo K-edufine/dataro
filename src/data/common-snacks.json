@@ -1,0 +1,25 @@
+{
+  "_todo": "TODO: 임시 데이터입니다. 실제 수업용 공통 간식 데이터로 교체 예정",
+  "snacks": [
+    { "id": "c1", "name": "새우깡", "price": 1500, "taste": 3.6 },
+    { "id": "c2", "name": "초코파이", "price": 2800, "taste": 4.2 },
+    { "id": "c3", "name": "꼬깔콘", "price": 1700, "taste": 4.0 },
+    { "id": "c4", "name": "홈런볼", "price": 1800, "taste": 4.3 },
+    { "id": "c5", "name": "포카칩", "price": 1900, "taste": 4.1 },
+    { "id": "c6", "name": "죠리퐁", "price": 1600, "taste": 3.4 },
+    { "id": "c7", "name": "빼빼로", "price": 1800, "taste": 4.4 },
+    { "id": "c8", "name": "젤리", "price": 1200, "taste": 3.8 },
+    { "id": "c9", "name": "사탕", "price": 500, "taste": 2.8 },
+    { "id": "c10", "name": "껌", "price": 1000, "taste": 2.5 },
+    { "id": "c11", "name": "아이스크림", "price": 1500, "taste": 4.7 },
+    { "id": "c12", "name": "초콜릿", "price": 2500, "taste": 4.5 },
+    { "id": "c13", "name": "과자 큰 봉지", "price": 4500, "taste": 4.0 },
+    { "id": "c14", "name": "도넛", "price": 3000, "taste": 4.6 },
+    { "id": "c15", "name": "과일 컵", "price": 3500, "taste": 3.9 },
+    { "id": "c16", "name": "요구르트", "price": 800, "taste": 3.3 },
+    { "id": "c17", "name": "쿠키", "price": 2200, "taste": 4.2 },
+    { "id": "c18", "name": "건강바", "price": 2000, "taste": 2.6 },
+    { "id": "c19", "name": "떡볶이 컵", "price": 3200, "taste": 4.4 },
+    { "id": "c20", "name": "주먹밥", "price": 1800, "taste": 3.2 }
+  ]
+}
