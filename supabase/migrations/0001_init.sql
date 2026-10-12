@@ -218,3 +218,10 @@ grant execute on function public.create_class(text)          to authenticated;
 grant execute on function public.join_class(text)            to authenticated;
 grant execute on function public.save_my_snacks(uuid, jsonb) to authenticated;
 grant execute on function public.submit_survey(uuid, int[])  to authenticated;
+
+-- ============================================================ 권한 명시
+-- 프로젝트 생성 시 "Automatically expose new tables and functions"를 꺼 두어도
+-- 동작하도록 필요한 권한을 직접 준다. (읽기 범위는 위의 RLS 정책이 제한한다.)
+grant usage on schema public to authenticated;
+grant select on public.classes, public.students, public.snack_data, public.survey_responses to authenticated;
+grant execute on function public.is_class_teacher(uuid), public.is_class_member(uuid), public.owns_student(uuid) to authenticated;
