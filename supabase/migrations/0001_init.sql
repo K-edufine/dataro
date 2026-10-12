@@ -96,6 +96,8 @@ create policy survey_select on public.survey_responses for select to authenticat
 -- TODO(3단계): 7차시 학급 군집화를 위해 같은 학급 설문 결과를 익명으로 읽는 방법 추가
 
 -- ============================================================ RPC 함수
+-- 참고: 대시보드 SQL Editor 가 "select ... into 변수" 형태를 잘못 처리하는 경우가 있어
+-- 변수 대입(:=) 방식으로만 작성했다.
 
 -- 교사: 학급 만들기 (익명 로그인 계정은 불가). 5자리 코드를 자동 발급한다.
 create function public.create_class(p_name text) returns public.classes
@@ -118,8 +120,8 @@ begin
       v_code := v_code || substr(v_alphabet, 1 + floor(random() * length(v_alphabet))::int, 1);
     end loop;
     begin
-      insert into public.classes (code, name, teacher_id)
-      values (v_code, p_name, auth.uid()) returning * into v_row;
+      insert into public.classes (code, name, teacher_id) values (v_code, p_name, auth.uid());
+      v_row := (select c from public.classes c where c.code = v_code);
       exit;
     exception when unique_violation then
       null; -- 코드 중복이면 다시 뽑는다
@@ -137,17 +139,19 @@ declare
   v_next  int;
 begin
   if auth.uid() is null then raise exception 'not_signed_in'; end if;
-  select * into v_class from public.classes
-   where code = upper(btrim(coalesce(p_code, ''))) for update; -- 번호 중복 방지용 잠금
-  if not found then raise exception 'class_not_found'; end if;
+  v_class := (select c from public.classes c where c.code = upper(btrim(coalesce(p_code, ''))));
+  if v_class.id is null then raise exception 'class_not_found'; end if;
 
-  select * into v_stu from public.students
-   where class_id = v_class.id and user_id = auth.uid();
-  if not found then
-    select coalesce(max(substr(anon_code, 2)::int), 0) + 1 into v_next
-      from public.students where class_id = v_class.id;
+  -- 같은 학급에 동시에 입장해도 번호가 겹치지 않게 잠근다 (트랜잭션이 끝나면 풀림)
+  perform pg_advisory_xact_lock(hashtext(v_class.id::text));
+
+  v_stu := (select s from public.students s where s.class_id = v_class.id and s.user_id = auth.uid());
+  if v_stu.id is null then
+    v_next := (select coalesce(max(substr(t.anon_code, 2)::int), 0) + 1
+                 from public.students t where t.class_id = v_class.id);
     insert into public.students (class_id, user_id, anon_code)
-    values (v_class.id, auth.uid(), 's' || v_next) returning * into v_stu;
+    values (v_class.id, auth.uid(), 's' || v_next);
+    v_stu := (select s from public.students s where s.class_id = v_class.id and s.user_id = auth.uid());
   end if;
 
   return json_build_object(
@@ -164,9 +168,9 @@ declare
   v_stu public.students;
   v_cnt int;
 begin
-  select * into v_stu from public.students where class_id = p_class_id and user_id = auth.uid();
-  if not found then raise exception 'not_member'; end if;
-  if not (4 = any (select unnest(open_lessons) from public.classes where id = p_class_id)) then
+  v_stu := (select s from public.students s where s.class_id = p_class_id and s.user_id = auth.uid());
+  if v_stu.id is null then raise exception 'not_member'; end if;
+  if not exists (select 1 from public.classes c where c.id = p_class_id and 4 = any (c.open_lessons)) then
     raise exception 'lesson_closed';
   end if;
   v_cnt := coalesce(jsonb_array_length(p_snacks), 0);
@@ -184,13 +188,12 @@ create function public.submit_survey(p_class_id uuid, p_answers int[]) returns p
 language plpgsql security definer set search_path = public as $$
 declare
   v_stu public.students;
-  v_row public.survey_responses;
-  v_c numeric;
-  v_s numeric;
+  v_c   numeric;
+  v_s   numeric;
 begin
-  select * into v_stu from public.students where class_id = p_class_id and user_id = auth.uid();
-  if not found then raise exception 'not_member'; end if;
-  if not (6 = any (select unnest(open_lessons) from public.classes where id = p_class_id)) then
+  v_stu := (select s from public.students s where s.class_id = p_class_id and s.user_id = auth.uid());
+  if v_stu.id is null then raise exception 'not_member'; end if;
+  if not exists (select 1 from public.classes c where c.id = p_class_id and 6 = any (c.open_lessons)) then
     raise exception 'lesson_closed';
   end if;
   if array_length(p_answers, 1) is distinct from 8
@@ -205,9 +208,8 @@ begin
   values (p_class_id, v_stu.id, p_answers::smallint[], v_c, v_s)
   on conflict (student_id) do update
     set answers = excluded.answers, consume_score = excluded.consume_score,
-        save_score = excluded.save_score, updated_at = now()
-  returning * into v_row;
-  return v_row;
+        save_score = excluded.save_score, updated_at = now();
+  return (select r from public.survey_responses r where r.student_id = v_stu.id);
 end $$;
 
 revoke all on function public.create_class(text)           from public, anon;

@@ -45,3 +45,11 @@
 - 학생 계정은 **브라우저에 저장된 익명 로그인**입니다. 브라우저 데이터를 지우거나 다른 기기로 옮기면 같은 번호(s1…)를 되찾을 수 없고 새 번호를 받습니다. 수업은 같은 태블릿을 쓰는 것을 권장해요.
 - 오래 쓰면 익명 계정이 쌓입니다. Supabase **Authentication → Users** 에서 정리할 수 있어요.
 - 교사 가입은 누구나 할 수 있습니다. 학급 데이터는 만든 교사에게만 보이지만, 가입을 막고 싶다면 **Sign In / Providers → Email → Allow new users to sign up** 을 끄고 교사 계정을 대시보드에서 직접 만드세요.
+
+## 문제 해결
+- **`unterminated dollar-quoted string` 오류**: 대시보드 SQL Editor 가 함수 본문을 잘못 자르는 경우입니다. 최신 `0001_init.sql` 은 이를 피하도록 작성되어 있으니 파일을 다시 복사해 쓰세요. 그래도 같으면 SQL 을 `create function` 단위로 나눠 하나씩 실행해 보세요.
+- **`already exists` 오류**: 이전 시도로 일부가 만들어진 상태입니다. 새 쿼리에서 아래를 먼저 실행한 뒤 다시 실행하세요.
+  ```sql
+  drop table if exists public.survey_responses, public.snack_data, public.students, public.classes cascade;
+  drop function if exists public.create_class(text), public.join_class(text), public.save_my_snacks(uuid, jsonb), public.submit_survey(uuid, int[]), public.is_class_teacher(uuid), public.is_class_member(uuid), public.owns_student(uuid);
+  ```
