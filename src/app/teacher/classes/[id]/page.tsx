@@ -139,6 +139,13 @@ export default function TeacherClassPage() {
           <span>7차시 학급 군집화 열기 (전자칠판용)</span>
           <span aria-hidden>→</span>
         </Link>
+        <Link
+          href={`/teacher/classes/${cls.id}/choices`}
+          className="mt-3 flex min-h-16 items-center justify-between gap-3 rounded-3xl bg-sky-600 px-5 text-xl font-extrabold text-white shadow-md transition active:scale-[0.98]"
+        >
+          <span>8·9차시 선택 변화와 성찰 보기 (전자칠판용)</span>
+          <span aria-hidden>→</span>
+        </Link>
       </section>
 
       <section aria-label="학생 현황">

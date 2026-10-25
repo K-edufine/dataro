@@ -1,14 +1,24 @@
 {
-  "_todo": "TODO: 임시 시나리오입니다. 8~10차시(4~5단계)에서 사용, 교체 예정",
+  "_todo": "TODO: 임시 시나리오·문구입니다(8~10차시용). 교체 예정. total 은 1,000~100,000, step 은 100 의 배수여야 한다(DB save_choice 가 100원 단위만 받는다)",
   "scenarios": [
     {
       "id": "allowance-10000",
-      "title": "용돈 10,000원이 생겼어요. 어떻게 할까요?",
-      "options": [
-        { "id": "a", "text": "전부 지금 쓴다" },
-        { "id": "b", "text": "반은 쓰고 반은 모은다" },
-        { "id": "c", "text": "전부 모은다" }
-      ]
+      "title": "용돈 10,000원이 생겼어요. 소비와 저축에 얼마씩 쓸까요?",
+      "total": 10000,
+      "step": 500
     }
+  ],
+  "_typeDirections_todo": "TODO: 군집 유형별로 교사가 나눠 주는 학습지(정보)가 소비/저축 중 어느 쪽을 부추기는지. consume=소비 쪽, save=저축 쪽, both=두 가지 정보를 모두 받음(방향 없음). 연구회에서 정하면 여기만 고치면 된다",
+  "typeDirections": {
+    "high-low": "consume",
+    "low-high": "save",
+    "high-high": "both",
+    "low-low": "both"
+  },
+  "_criticalQuestions_todo": "TODO: 임시 문구. 9차시 마무리 '정보를 비판적으로 받아들이기' 질문",
+  "criticalQuestions": [
+    "이 정보는 누가 만들었을까?",
+    "좋은 점만 말하고 있지는 않을까?",
+    "나에게 다른 이야기는 왜 보여 주지 않았을까?"
   ]
 }

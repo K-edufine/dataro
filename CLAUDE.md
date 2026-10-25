@@ -62,6 +62,8 @@
 - students: 익명 코드, 학급
 - snack_data: 학생별 간식 목록(이름·가격·선호도; 컬럼명은 taste)
 - k_trials: 5차시 K(2~5)별 학생이 묶은 그룹·최종 그룹·판단·거리 지표
+- cluster_results/cluster_labels: 7차시 교사가 확정한 학급 군집 결과와 학생이 붙인 그룹 이름
+- choices/ai_reflections: 8차시 용돈 선택(라운드 1·2, 3은 10차시)과 9차시 성찰
 - survey_responses: 문항별 응답, 소비 점수, 저축 점수
 - cluster_results: 학급별 K값마다 확정된 군집 결과
 - cluster_labels: 학급별 K값마다 군집 이름
@@ -104,11 +106,11 @@ src/
   app/            # 라우트: / , student, snack/(common, input, mine), tendency/survey, teacher/
   lib/kmeans/     # 순수 K-평균 (normalize, seeded-random, kmeans + 테스트)
   lib/supabase/   # 클라이언트(학생/교사 로그인 분리), 타입
-  lib/            # student-session, lessons, survey, snack-db, teacher, k-trials, class-cluster, cluster-types, class-db, demo-class
+  lib/            # student-session, lessons, survey, snack-db, teacher, k-trials, class-cluster, cluster-types, class-db, demo-class, choices, choice-db, my-cluster
 supabase/migrations/  # SQL 스키마·RLS·RPC (대시보드 SQL Editor에서 실행)
 docs/             # 설정 안내
   data/           # 코드 안 JSON (간식, 설문, 시나리오, 추천)
-  components/     # chart/, snack/, cluster/, survey/, student/, ui/
+  components/     # chart/, snack/, cluster/, choice/, survey/, student/, ui/
   types/
 ```
 
@@ -124,12 +126,13 @@ docs/             # 설정 안내
 - 설문 점수는 DB 함수가 계산(`submit_survey`)하고, `lib/survey.ts`의 `calcSurveyScores`가 같은 규칙으로 화면 표시·테스트에 쓰인다. 둘을 항상 같게 유지할 것.
 
 ## 수업 설계 확정 사항 (연구회 회의 반영)
-- 구현 상태: 4·5차시 ✅(0003 SQL), 6·7차시 ✅(0004 SQL), 8~10차시 구현 예정
+- 구현 상태: 4·5차시 ✅(0003 SQL), 6·7차시 ✅(0004 SQL), 8·9차시 ✅(0005 SQL), 10차시와 교사 전체 결과 구현 예정
 - **4차시** ✅: 간식 10개(이름·가격 고정)를 주고 학생은 **선호도**(1~5)만 입력. 화면의 "맛 점수"는 모두 "선호도"로 바꾼다. 저장 → 5차시에서 불러온다.
 - **5차시** ✅ 흐름: K=2→3→4→5 순서로 **매번 직접 묶는다**. ① 그룹 고르기 → ② 그래프에서 사각형 드래그 / 점·간식 칩 터치로 지정(다시 누르면 해제) → ③ "다 묶었어요" → 컴퓨터가 학생이 묶은 그룹의 한가운데에 중심점을 만들고 배정·이동을 반복하는 애니메이션(자동/멈춤/한 단계/끝까지) → ④ 학생이 **넓어요 / 알맞아요 / 잘게 나눴어요** 중 판단(DB `k_trials`에 저장) → ⑤ 판단 후에야 컴퓨터 판정과 이유를 보여 준다 → 모든 K 후 "모아 보기"(고학년은 평균 거리 꺾은선 추가). 새로고침해도 저장된 판단으로 복원(묶은 그룹에서 다시 계산).
   - 엔진: `initFromGroups`(phase `grouped`), `evaluate`/`computerJudgment`(`src/lib/kmeans/evaluate.ts`). 임시 기준값: `WIDE_RADIUS_LIMIT`=0.4(눈금 4), `MAX_SINGLE_GROUPS`=1 — 실제 학급 데이터를 보고 조정.
   - 거리는 정규화 값으로 계산하고 0~10 눈금으로 환산해 보여 준다.
 - **6차시** ✅: 4점 척도(중립 없음), 문항은 기존 8개(소비 4+저축 4)로 시작, 나중에 논문 문항(6+6 등)으로 교체. 점수는 **합계**(평균 아님; 정규화하면 군집은 같고 읽기 쉬움). 문항은 `src/data/survey.json`(앞 절반=소비, 뒤 절반=저축, 개수 같아야 함)이고 축 범위(`AXIS_MIN/MAX/MID`)는 문항 수×척도로 자동 계산. DB `submit_survey` 가 같은 규칙으로 합계를 계산(척도를 바꾸면 SQL의 4도 함께 바꿀 것).
 - **7차시** ✅: 학급 친구들의 점이 모두 보이는 소비×저축 그래프(점 위에 올리면 `s8 · 소비 15 · 저축 13`, 내 점 빨간 테두리, 같은 좌표 점은 퍼뜨려 표시) + K=2·3·4 비교. 학생이 그룹마다 직접 이름을 붙이고 K마다 따로 저장(`cluster_labels`). 결과는 **교사가 확정**(`/teacher/classes/[id]/cluster`)해서 `cluster_results`에 저장하고(여러 시드 중 최적 `runBest`, 그룹 번호는 소비 낮은 순), 학생은 확정 결과만 본다. 4유형(소비·저축 높음/낮음)은 중심점이 척도 가운데보다 높은지로 자동 판정, 교사가 수정 가능(`set_group_types`). 8~10차시용 대표 K(`classes.main_k`, 기본 4)도 확정할 때 정한다. 다시 확정하면 학생들이 붙인 이름은 지워진다. 교사 화면에 "연습용 가상 학생 25명" 미리보기(저장 안 됨)가 있다. 같은 학급 친구 점수는 `class_scores` 함수로만 읽는다(번호표+점수만, 7~10차시 열림 + 같은 학급, 이름 없음).
-- **8차시**: 용돈 10,000원을 소비/저축으로 나누는 1차 선택(예: 3,000/7,000) → 교사가 학습지로 군집별 정보를 나눠 줌(앱은 안내 화면만) → 2차 선택(예: 5,000/5,000). 알고리즘이 선택을 강화한다는 흐름.
-- **9차시**: 추천받지 않은 다른 정보 비교(학습지) + 1·2차 선택 비교 + AI 결과와 나의 생각 비교. 추천 정보는 앱으로 구현하지 않는다.
+- **8차시** ✅ (`/tendency/choice`): 용돈 10,000원(`scenarios.json`)을 소비/저축으로 나누는 1차 선택(동전 누르기·슬라이더·±500원 버튼, 선택 이유는 선택 사항 60자) → 내 그룹 안내(7차시 확정 결과의 대표 K에서 찾은 내 그룹과 내가 붙인 이름, "선생님께 이 그룹 학습지를 받아 읽어요") → [다 읽었어요] → 2차 선택(1차 값에서 시작, 1차는 점선 참고) → 1·2차 막대 비교. 추천 정보는 앱이 아니라 교사가 학습지로 나눠 준다. 1차는 2차를 저장하기 전까지만 고칠 수 있다(`save_choice`). `choices.round` 3은 10차시 3차 선택용으로 열어 둠.
+- **9차시** ✅ (`/tendency/reflect`): ① 1·2차 비교와 "정보가 알려 준 쪽으로 움직였는지" ② 다른 그룹 학습지 읽기 체크리스트(저장 안 함) ③ 컴퓨터 결과와 나의 생각: 동의 ★1~5·이유·"컴퓨터가 모르는 나"(필수 입력) + "한쪽 이야기만 한 것 같은 부분"(선택) → `ai_reflections` ④ 비판적 수용 질문 마무리(`scenarios.json` criticalQuestions, 임시 문구). 교사 화면 `/teacher/classes/[id]/choices`: 학급 요약, 학생별 1→2차 화살표, 번호별 표와 성찰 펼쳐 보기(학생들에게는 학급 통계를 보여 주지 않는다).
+  - **유형별 정보 방향**(`scenarios.json` `typeDirections`): 소비↑저축↓=consume, 소비↓저축↑=save, 소비↑저축↑·소비↓저축↓=both(소비·저축 정보를 모두 받아 방향 없음). **연구회에서 아직 고민 중**이므로 바뀌면 이 JSON만 고친다.
