@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { LinkButton } from "@/components/ui/Button";
-import { ClassCodeForm } from "./ClassCodeForm";
+import { JoinForm } from "./JoinForm";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { useStudentSession, type StudentSession } from "@/lib/student-session";
 import { useOpenLessons } from "@/lib/use-open-lessons";
@@ -32,7 +32,7 @@ export function LessonGate({
     return (
       <Center>
         <h1 className="text-3xl font-extrabold">먼저 학급에 들어가요</h1>
-        <ClassCodeForm />
+        <JoinForm />
         <Link href="/" className="text-base font-bold text-sky-700 underline">← 처음으로</Link>
       </Center>
     );

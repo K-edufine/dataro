@@ -1,17 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabase/client";
 import type { ClassRow, StudentRow, SurveyRow } from "@/lib/supabase/types";
 import { LESSONS } from "@/lib/lessons";
+import { GRADE_BAND_LABEL, classLabel } from "@/lib/schools";
 import { useTeacherGuard } from "@/lib/teacher";
 
 const POLL_MS = 10_000;
 
 export default function TeacherClassPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const { ready } = useTeacherGuard();
   const [cls, setCls] = useState<ClassRow | null>(null);
   const [students, setStudents] = useState<StudentRow[]>([]);
@@ -61,6 +63,17 @@ export default function TeacherClassPage() {
     }
   }
 
+  async function remove() {
+    if (!cls) return;
+    const ok = window.confirm(
+      `${classLabel(cls)}을(를) 삭제할까요?\n학생 입장 기록, 간식 데이터, 설문 결과가 모두 지워지고 되돌릴 수 없어요.`,
+    );
+    if (!ok) return;
+    const { error: err } = await getSupabase("teacher").from("classes").delete().eq("id", cls.id);
+    if (err) setError("삭제하지 못했어요. 다시 해 주세요.");
+    else router.replace("/teacher");
+  }
+
   if (missing) {
     return (
       <main className="p-6 text-xl">
@@ -76,11 +89,13 @@ export default function TeacherClassPage() {
     <main className="mx-auto max-w-5xl p-4 sm:p-6">
       <Link href="/teacher" className="text-base font-bold text-sky-700 underline">← 내 학급</Link>
       <header className="mb-6 mt-1 flex flex-wrap items-end justify-between gap-4">
-        <h1 className="text-4xl font-extrabold">{cls.name}</h1>
-        <div className="rounded-3xl bg-amber-100 px-6 py-3 text-center">
-          <p className="text-base font-bold">학급 코드</p>
-          <p className="font-mono text-6xl font-extrabold tracking-[0.25em]">{cls.code}</p>
+        <div>
+          <h1 className="text-4xl font-extrabold">{classLabel(cls)}</h1>
+          <p className="mt-1 text-lg font-bold text-slate-600">
+            {GRADE_BAND_LABEL[cls.grade_band]} · 학생 {cls.student_count}명
+          </p>
         </div>
+        <button onClick={remove} className="min-h-12 rounded-2xl px-4 text-base font-bold text-rose-600 underline">학급 삭제</button>
       </header>
 
       <section className="mb-8" aria-label="차시 열고 닫기">
@@ -118,28 +133,28 @@ export default function TeacherClassPage() {
       <section aria-label="학생 현황">
         <h2 className="mb-1 text-2xl font-extrabold">학생 현황</h2>
         <p className="mb-3 text-lg">
-          입장 <b>{students.length}</b>명 · 간식 입력 <b>{students.filter((s) => snackCounts[s.id]).length}</b>명 · 설문 <b>{surveys.length}</b>명
+          입장 <b>{students.length}</b>/{cls.student_count}명 · 간식 입력 <b>{students.filter((s) => snackCounts[s.id]).length}</b>명 · 설문 <b>{surveys.length}</b>명
         </p>
         <div className="overflow-x-auto rounded-3xl border-2 border-slate-200 bg-white">
           <table className="w-full text-left text-lg">
             <thead className="bg-slate-50 text-base text-slate-600">
               <tr>
-                <th className="p-3">익명 코드</th>
-                <th className="p-3">내 간식</th>
+                <th className="p-3">번호</th>
+                <th className="p-3">입장</th>
+                <th className="p-3">간식 선호도</th>
                 <th className="p-3">소비 점수</th>
                 <th className="p-3">저축 점수</th>
               </tr>
             </thead>
             <tbody>
-              {students.length === 0 && (
-                <tr><td colSpan={4} className="p-4 text-slate-500">아직 들어온 학생이 없어요.</td></tr>
-              )}
-              {students.map((s) => {
-                const sv = surveyOf(s.id);
+              {Array.from({ length: cls.student_count }, (_, i) => i + 1).map((n) => {
+                const stu = students.find((x) => x.number === n);
+                const sv = stu ? surveyOf(stu.id) : undefined;
                 return (
-                  <tr key={s.id} className="border-t border-slate-100">
-                    <td className="p-3 font-extrabold">{s.anon_code}</td>
-                    <td className="p-3">{snackCounts[s.id] ? `${snackCounts[s.id]}개` : "-"}</td>
+                  <tr key={n} className="border-t border-slate-100">
+                    <td className="p-3 font-extrabold">{n}번 <span className="text-sm font-normal text-slate-500">({`s${n}`})</span></td>
+                    <td className="p-3">{stu ? "✅" : "-"}</td>
+                    <td className="p-3">{stu && snackCounts[stu.id] ? `${snackCounts[stu.id]}개` : "-"}</td>
                     <td className="p-3">{sv ? Number(sv.consume_score).toFixed(2) : "-"}</td>
                     <td className="p-3">{sv ? Number(sv.save_score).toFixed(2) : "-"}</td>
                   </tr>

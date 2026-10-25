@@ -1,13 +1,27 @@
 import { useSyncExternalStore } from "react";
 import { errorCode, getSupabase } from "@/lib/supabase/client";
 
-/** 학생이 입장한 학급 정보. 브라우저에 저장해 다음 차시에도 유지한다. 이름 등 개인정보는 없다. */
+/** 학생이 입장한 학급 정보. 브라우저에 저장해 다음 차시에도 유지한다. 이름은 저장하지 않고 번호만 쓴다. */
 export interface StudentSession {
   classId: string;
-  className: string;
-  classCode: string;
+  school: string;
+  grade: number;
+  classNo: number;
+  gradeBand: "low" | "high";
+  studentCount: number;
   studentId: string;
+  /** 출석 번호 */
+  number: number;
+  /** s + 번호 (예: s8). 친구들에게 보이는 이름표 */
   anonCode: string;
+}
+
+/** 학교에 개설된 학급 (입장 전에 고르는 목록) */
+export interface ListedClass {
+  id: string;
+  grade: number;
+  class_no: number;
+  student_count: number;
 }
 
 const KEY = "dataro.studentSession";
@@ -35,7 +49,7 @@ function parse(raw: string | null): StudentSession | null {
   if (!raw) return null;
   try {
     const s = JSON.parse(raw);
-    return s && typeof s.classId === "string" && typeof s.studentId === "string" ? (s as StudentSession) : null;
+    return s && typeof s.classId === "string" && typeof s.studentId === "string" && typeof s.number === "number" ? (s as StudentSession) : null;
   } catch {
     return null;
   }
@@ -58,12 +72,20 @@ export function clearStudentSession(): void {
 }
 
 const JOIN_MESSAGES: Record<string, string> = {
-  class_not_found: "학급 코드를 찾을 수 없어요. 선생님께 코드를 다시 물어봐요.",
+  class_not_found: "학급을 찾을 수 없어요. 선생님께 물어봐요.",
+  invalid_number: "번호가 맞지 않아요. 다시 골라 봐요.",
   not_configured: "아직 서버 설정이 끝나지 않았어요. 선생님께 알려 주세요.",
 };
 
-/** 학급 코드로 입장한다. 처음이면 익명 계정을 만들고, 다시 입장하면 같은 익명 코드를 돌려받는다. */
-export async function joinClass(code: string): Promise<StudentSession> {
+/** 학교에 선생님이 열어 둔 학급 목록 (로그인 전에도 볼 수 있다) */
+export async function listClasses(school: string): Promise<ListedClass[]> {
+  const { data, error } = await getSupabase("student").rpc("list_classes", { p_school: school });
+  if (error) throw new Error("학급 목록을 불러오지 못했어요. 잠시 뒤에 다시 해 봐요.");
+  return (data ?? []) as ListedClass[];
+}
+
+/** 학급과 번호로 입장한다. 같은 번호로 다시 들어오면 같은 학생으로 이어진다. */
+export async function joinClass(classId: string, number: number): Promise<StudentSession> {
   try {
     const supabase = getSupabase("student");
     const { data } = await supabase.auth.getSession();
@@ -71,13 +93,17 @@ export async function joinClass(code: string): Promise<StudentSession> {
       const { error } = await supabase.auth.signInAnonymously();
       if (error) throw error;
     }
-    const { data: res, error } = await supabase.rpc("join_class", { p_code: code });
+    const { data: res, error } = await supabase.rpc("join_class", { p_class_id: classId, p_number: number });
     if (error) throw error;
     const session: StudentSession = {
       classId: res.class_id,
-      className: res.class_name,
-      classCode: res.class_code,
+      school: res.school,
+      grade: res.grade,
+      classNo: res.class_no,
+      gradeBand: res.grade_band,
+      studentCount: res.student_count,
       studentId: res.student_id,
+      number: res.number,
       anonCode: res.anon_code,
     };
     localStorage.setItem(KEY, JSON.stringify(session));
@@ -86,4 +112,9 @@ export async function joinClass(code: string): Promise<StudentSession> {
   } catch (e) {
     throw new Error(JOIN_MESSAGES[errorCode(e)] ?? "입장하지 못했어요. 잠시 뒤에 다시 해 봐요.");
   }
+}
+
+/** 화면에 보일 "삼상초 3학년 1반 8번" */
+export function sessionLabel(s: StudentSession): string {
+  return `${s.school} ${s.grade}학년 ${s.classNo}반 ${s.number}번`;
 }

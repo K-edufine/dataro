@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { LinkButton } from "@/components/ui/Button";
 import { LESSONS } from "@/lib/lessons";
-import { clearStudentSession, useStudentSession } from "@/lib/student-session";
+import { clearStudentSession, sessionLabel, useStudentSession } from "@/lib/student-session";
 import { useOpenLessons } from "@/lib/use-open-lessons";
 import { useMySurvey } from "@/lib/use-my-survey";
 
@@ -16,8 +16,8 @@ export default function StudentHome() {
   if (!session) {
     return (
       <main className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center gap-6 p-6 text-center">
-        <p className="text-2xl font-bold">먼저 학급 코드를 입력해요.</p>
-        <LinkButton href="/">학급 코드 쓰러 가기</LinkButton>
+        <p className="text-2xl font-bold">먼저 학교와 내 번호를 골라요.</p>
+        <LinkButton href="/">입장하러 가기</LinkButton>
       </main>
     );
   }
@@ -25,11 +25,11 @@ export default function StudentHome() {
   return (
     <main className="mx-auto max-w-3xl p-4 sm:p-6">
       <header className="mb-6 rounded-3xl bg-sky-50 p-5">
-        <p className="text-lg text-slate-600">{session.className}</p>
+        <p className="text-lg text-slate-600">{sessionLabel(session)}</p>
         <h1 className="text-3xl font-extrabold">
           나는 <span className="text-sky-700">{session.anonCode}</span> 이에요
         </h1>
-        <p className="mt-1 text-base text-slate-600">이름은 저장하지 않아요. 이 번호만 기억해 주세요.</p>
+        <p className="mt-1 text-base text-slate-600">이름은 저장하지 않아요. 친구들에게는 이 번호표만 보여요.</p>
       </header>
 
       <ul className="space-y-3">
@@ -69,7 +69,7 @@ export default function StudentHome() {
       <div className="mt-6 flex flex-wrap gap-3">
         <LinkButton href="/" variant="ghost">처음 화면</LinkButton>
         <button onClick={clearStudentSession} className="min-h-14 rounded-2xl px-4 text-base font-bold text-slate-500 underline">
-          다른 학급 코드로 들어가기
+          다른 번호로 들어가기
         </button>
       </div>
     </main>

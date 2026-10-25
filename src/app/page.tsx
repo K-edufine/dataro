@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ClassCodeForm } from "@/components/student/ClassCodeForm";
+import { JoinForm } from "@/components/student/JoinForm";
 import { LinkButton } from "@/components/ui/Button";
-import { useStudentSession } from "@/lib/student-session";
+import { sessionLabel, useStudentSession } from "@/lib/student-session";
 
 export default function Home() {
   const router = useRouter();
@@ -18,16 +18,16 @@ export default function Home() {
       {session && (
         <div className="w-full rounded-3xl bg-sky-50 p-5">
           <p className="mb-3 text-xl font-bold">
-            {session.className}에 <span className="text-sky-700">{session.anonCode}</span>(으)로 들어와 있어요.
+            {sessionLabel(session)}(<span className="text-sky-700">{session.anonCode}</span>)으로 들어와 있어요.
           </p>
           <LinkButton href="/student" className="w-full text-2xl">이어서 하기</LinkButton>
         </div>
       )}
 
-      <ClassCodeForm onJoined={() => router.push("/student")} />
+      <JoinForm onJoined={() => router.push("/student")} />
 
       <div className="flex flex-col items-center gap-3">
-        <LinkButton href="/snack/common" variant="ghost">🍪 학급 코드 없이 공통 간식 체험하기</LinkButton>
+        <LinkButton href="/snack/common" variant="ghost">🍪 로그인 없이 공통 간식 체험하기</LinkButton>
         <Link href="/teacher" className="text-base font-bold text-slate-500 underline">선생님 로그인</Link>
       </div>
     </main>

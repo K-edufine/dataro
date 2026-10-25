@@ -1,0 +1,10 @@
+{
+  "_todo": "TODO: 연구회에서 사용할 학교·학급 목록. 학교가 늘면 여기에 추가한다. classNo 가 null 이면 반 미정(학년 인원만 확정)",
+  "schools": [
+    { "name": "삼상초", "presets": [{ "grade": 3, "classNo": 1, "students": 17 }] },
+    { "name": "이담초", "presets": [{ "grade": 4, "classNo": 1, "students": 25 }] },
+    { "name": "옥정초", "presets": [{ "grade": 4, "classNo": 3, "students": 24 }, { "grade": 6, "classNo": 5, "students": 25 }] },
+    { "name": "신천초", "presets": [{ "grade": 4, "classNo": null, "students": 25 }] },
+    { "name": "덕정초", "presets": [{ "grade": 6, "classNo": 3, "students": 22 }] }
+  ]
+}
