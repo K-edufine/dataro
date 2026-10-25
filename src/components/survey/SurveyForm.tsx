@@ -7,7 +7,7 @@ import { LessonGate } from "@/components/student/LessonGate";
 import { getSupabase } from "@/lib/supabase/client";
 import { useMySurvey, type MySurvey } from "@/lib/use-my-survey";
 import type { StudentSession } from "@/lib/student-session";
-import { QUESTIONS, SCALE_LABELS, calcSurveyScores } from "@/lib/survey";
+import { AXIS_MAX, AXIS_MIN, QUESTIONS, SCALE_LABELS, calcSurveyScores } from "@/lib/survey";
 
 export function SurveyForm() {
   return <LessonGate lessons={[6]}>{(session) => <Loader session={session} />}</LessonGate>;
@@ -60,14 +60,16 @@ function Survey({ session, previous }: { session: StudentSession; previous: MySu
         <div className="grid w-full grid-cols-2 gap-4">
           <div className="rounded-3xl bg-amber-100 p-5">
             <p className="text-lg font-bold">소비 점수</p>
-            <p className="text-5xl font-extrabold">{done.consume.toFixed(2)}</p>
+            <p className="text-5xl font-extrabold">{Math.round(done.consume)}<span className="text-2xl font-bold">점</span></p>
+            <p className="text-base text-slate-600">{AXIS_MIN}~{AXIS_MAX}점 중</p>
           </div>
           <div className="rounded-3xl bg-sky-100 p-5">
             <p className="text-lg font-bold">저축 점수</p>
-            <p className="text-5xl font-extrabold">{done.save.toFixed(2)}</p>
+            <p className="text-5xl font-extrabold">{Math.round(done.save)}<span className="text-2xl font-bold">점</span></p>
+            <p className="text-base text-slate-600">{AXIS_MIN}~{AXIS_MAX}점 중</p>
           </div>
         </div>
-        <p className="text-lg text-slate-700">점수가 높을수록 그런 마음이 커요. 맞고 틀린 답은 없어요.</p>
+        <p className="text-lg text-slate-700">점수가 높을수록 그런 마음이 커요. 맞고 틀린 답은 없어요. 7차시에서 친구들과 함께 살펴봐요.</p>
         <div className="flex flex-wrap justify-center gap-3">
           <Button variant="ghost" onClick={() => { setDone(null); setIndex(0); }}>답 고치기</Button>
           <LinkButton href="/student">내 화면으로</LinkButton>
@@ -90,7 +92,7 @@ function Survey({ session, previous }: { session: StudentSession; previous: MySu
       <section aria-live="polite" className="flex-1">
         <p className="mb-2 text-lg font-bold text-sky-700">질문 {index + 1}</p>
         <h2 className="mb-6 rounded-3xl bg-amber-50 p-6 text-3xl font-extrabold leading-snug">{q.text}</h2>
-        <div className="grid grid-cols-5 gap-2 sm:gap-3" role="radiogroup" aria-label="얼마나 그런가요?">
+        <div className="grid grid-cols-4 gap-2 sm:gap-3" role="radiogroup" aria-label="얼마나 그런가요?">
           {SCALE_LABELS.map((s) => {
             const on = answers[index] === s.value;
             return (

@@ -59,6 +59,8 @@ interface Props {
   /** 내 점처럼 강조할 점 */
   highlightId?: string;
   paint?: PaintMode;
+  /** 좌표가 같은 점들을 살짝 퍼뜨려서 모두 보이고 누를 수 있게 한다 (점수가 정수라 겹치기 쉬울 때) */
+  spreadDuplicates?: boolean;
   /** 점 옆에 이름을 항상 보여 준다 (터치 화면에는 마우스 올리기가 없으므로) */
   showLabels?: boolean;
 }
@@ -73,7 +75,7 @@ const LABEL_H = 20;
 
 export function ScatterChart({
   points, regions = [], centroids = [], xDomain, yDomain, xTicks, yTicks, xLabel, yLabel,
-  formatX = String, formatY = String, onSelect, selectedIds = [], highlightId, paint, showLabels = false,
+  formatX = String, formatY = String, onSelect, selectedIds = [], highlightId, paint, showLabels = false, spreadDuplicates = false,
 }: Props) {
   const clipId = useId();
   const svgRef = useRef<SVGSVGElement>(null);
@@ -87,11 +89,26 @@ export function ScatterChart({
   const yScale = (H - M.t - M.b) / (yDomain[1] - yDomain[0]);
   const sy = (v: number) => H - M.b - ((v - yDomain[0]) / (yDomain[1] - yDomain[0])) * (H - M.t - M.b);
 
-  const placed = useMemo(
-    () => points.map((p) => ({ ...p, px: sx(p.x), py: sy(p.y) })),
+  const placed = useMemo(() => {
+    const base = points.map((p) => ({ ...p, px: sx(p.x), py: sy(p.y) }));
+    if (!spreadDuplicates) return base;
+    // 같은 자리의 점들을 작은 원 위에 나란히 놓는다
+    const byPos = new Map<string, number[]>();
+    base.forEach((p, i) => {
+      const key = `${p.x},${p.y}`;
+      byPos.set(key, [...(byPos.get(key) ?? []), i]);
+    });
+    for (const idxs of byPos.values()) {
+      if (idxs.length < 2) continue;
+      const radius = idxs.length <= 3 ? 9 : idxs.length <= 6 ? 13 : 17;
+      idxs.forEach((i, n) => {
+        const angle = -Math.PI / 2 + (2 * Math.PI * n) / idxs.length;
+        base[i] = { ...base[i], px: base[i].px + radius * Math.cos(angle), py: base[i].py + radius * Math.sin(angle) };
+      });
+    }
+    return base;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [points, xDomain[0], xDomain[1], yDomain[0], yDomain[1]],
-  );
+  }, [points, spreadDuplicates, xDomain[0], xDomain[1], yDomain[0], yDomain[1]]);
 
   function groupAt(id: string) {
     const me = placed.find((p) => p.id === id)!;

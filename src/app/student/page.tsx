@@ -45,7 +45,7 @@ export default function StudentHome() {
                 <span className="block text-xl font-extrabold">{l.title}</span>
                 {l.n === 6 && surveyLoaded && (
                   <span className="mt-0.5 block text-base font-bold text-slate-700">
-                    {survey ? `내 점수: 소비 ${survey.consume.toFixed(2)} · 저축 ${survey.save.toFixed(2)}` : "아직 설문을 안 했어요"}
+                    {survey ? `내 점수: 소비 ${Math.round(survey.consume)} · 저축 ${Math.round(survey.save)}` : "아직 설문을 안 했어요"}
                   </span>
                 )}
               </span>

@@ -132,6 +132,13 @@ export default function TeacherClassPage() {
           })}
         </ul>
         {error && <p className="mt-2 font-bold text-rose-600" role="alert">{error}</p>}
+        <Link
+          href={`/teacher/classes/${cls.id}/cluster`}
+          className="mt-3 flex min-h-16 items-center justify-between gap-3 rounded-3xl bg-sky-600 px-5 text-xl font-extrabold text-white shadow-md transition active:scale-[0.98]"
+        >
+          <span>7차시 학급 군집화 열기 (전자칠판용)</span>
+          <span aria-hidden>→</span>
+        </Link>
       </section>
 
       <section aria-label="학생 현황">
@@ -168,8 +175,8 @@ export default function TeacherClassPage() {
                           })
                         : "-"}
                     </td>
-                    <td className="p-3">{sv ? Number(sv.consume_score).toFixed(2) : "-"}</td>
-                    <td className="p-3">{sv ? Number(sv.save_score).toFixed(2) : "-"}</td>
+                    <td className="p-3">{sv ? Math.round(Number(sv.consume_score)) : "-"}</td>
+                    <td className="p-3">{sv ? Math.round(Number(sv.save_score)) : "-"}</td>
                   </tr>
                 );
               })}
