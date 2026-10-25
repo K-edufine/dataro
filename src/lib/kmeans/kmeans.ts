@@ -39,10 +39,42 @@ export function init(
   };
 }
 
+/**
+ * 학생이 직접 묶은 그룹에서 시작한다. groups[i] 는 i번째 점의 그룹 번호(0부터).
+ * 모든 점이 배정되어 있고 모든 그룹에 점이 하나 이상 있어야 한다.
+ * 첫 step 이 "각 그룹의 한가운데(평균)"에 중심점을 만들고, 이후는 보통의 K-평균과 같다.
+ */
+export function initFromGroups(
+  points: readonly Point[],
+  groups: readonly number[],
+  options: InitOptions = {},
+): KMeansState {
+  if (points.length === 0) throw new Error("점이 하나도 없어요.");
+  if (groups.length !== points.length) throw new Error("모든 점의 그룹이 필요해요.");
+  if (groups.some((g) => !Number.isInteger(g) || g < 0)) throw new Error("아직 묶지 않은 점이 있어요.");
+  const k = Math.max(...groups) + 1;
+  for (let c = 0; c < k; c++) {
+    if (!groups.includes(c)) throw new Error("비어 있는 그룹이 있어요.");
+  }
+  return {
+    points,
+    k,
+    seed: options.seed ?? 1,
+    maxIterations: options.maxIterations ?? DEFAULT_MAX_ITERATIONS,
+    bounds: computeBounds(points),
+    phase: "grouped",
+    assignments: [...groups],
+    centroidsNorm: [],
+    centroids: [],
+    iteration: 0,
+  };
+}
+
 /** 지금 눌러야 할 다음 단계. 끝났으면 null */
 export function nextAction(state: KMeansState): StepAction | null {
   switch (state.phase) {
     case "ready":
+    case "grouped":
       return "centroids";
     case "centroids":
     case "moved":
@@ -95,6 +127,7 @@ export function summarize(state: KMeansState): ClusterSummary[] {
 // ---------------------------------------------------------------- 내부 함수
 
 function createCentroids(state: KMeansState): KMeansState {
+  if (state.phase === "grouped") return centroidsFromGroups(state);
   const rng = createRng(state.seed);
   const norm = state.points.map((p) => normalizeValue(p.x, p.y, state.bounds));
 
@@ -120,6 +153,17 @@ function createCentroids(state: KMeansState): KMeansState {
   }
 
   return withCentroids({ ...state, phase: "centroids" }, chosen.map((i) => norm[i]));
+}
+
+/** 학생이 묶은 그룹마다 한가운데(평균)에 중심점을 만든다. 배정은 학생이 묶은 그대로 둔다. */
+function centroidsFromGroups(state: KMeansState): KMeansState {
+  const norm = state.points.map((p) => normalizeValue(p.x, p.y, state.bounds));
+  const centers: Vec[] = [];
+  for (let c = 0; c < state.k; c++) {
+    const members = norm.filter((_, i) => state.assignments[i] === c);
+    centers.push([mean(members.map((m) => m[0])), mean(members.map((m) => m[1]))]);
+  }
+  return withCentroids({ ...state, phase: "centroids" }, centers);
 }
 
 function assign(state: KMeansState): KMeansState {

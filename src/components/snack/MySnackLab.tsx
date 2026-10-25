@@ -1,26 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { KAnalysis } from "./KAnalysis";
+import { KLab } from "./KLab";
 import { LinkButton } from "@/components/ui/Button";
 import { LessonGate } from "@/components/student/LessonGate";
+import { loadKTrials, type SavedTrial } from "@/lib/k-trials";
 import { loadMySnacks } from "@/lib/snack-db";
 import type { StudentSession } from "@/lib/student-session";
 import type { Snack } from "@/types/snack";
 
-/** 5차시: 4차시에 저장한 선호도로 군집을 분석한다. */
+/** 5차시: 4차시에 저장한 선호도로 K=2→3→4→5를 직접 묶어 보며 알맞은 K를 판단한다. */
 export function MySnackLab() {
   return <LessonGate lessons={[5]}>{(session) => <Loader session={session} />}</LessonGate>;
 }
 
 function Loader({ session }: { session: StudentSession }) {
-  const [snacks, setSnacks] = useState<Snack[] | null>(null);
+  const [data, setData] = useState<{ snacks: Snack[]; trials: SavedTrial[] } | null>(null);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let alive = true;
-    loadMySnacks(session)
-      .then((s) => alive && setSnacks(s))
+    Promise.all([
+      loadMySnacks(session),
+      loadKTrials(session).catch(() => [] as SavedTrial[]), // 판단 기록을 못 불러와도 처음부터 할 수 있다
+    ])
+      .then(([snacks, trials]) => alive && setData({ snacks, trials }))
       .catch(() => alive && setFailed(true));
     return () => {
       alive = false;
@@ -28,8 +32,8 @@ function Loader({ session }: { session: StudentSession }) {
   }, [session]);
 
   if (failed) return <Message>데이터를 불러오지 못했어요. 잠시 뒤에 다시 해 봐요.</Message>;
-  if (!snacks) return <Message>불러오는 중…</Message>;
-  if (snacks.length === 0) {
+  if (!data) return <Message>불러오는 중…</Message>;
+  if (data.snacks.length < 5) {
     return (
       <Message>
         <p>아직 선호도를 입력하지 않았어요.</p>
@@ -38,7 +42,14 @@ function Loader({ session }: { session: StudentSession }) {
       </Message>
     );
   }
-  return <KAnalysis snacks={snacks} gradeBand={session.gradeBand} title={`내 간식 군집 분석 (${session.anonCode})`} />;
+  return (
+    <KLab
+      session={session}
+      snacks={data.snacks}
+      saved={data.trials}
+      title={`내 간식 군집 분석 (${session.anonCode})`}
+    />
+  );
 }
 
 function Message({ children }: { children: React.ReactNode }) {

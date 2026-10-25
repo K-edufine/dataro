@@ -14,12 +14,13 @@ export interface Bounds {
 
 /**
  * ready      : 아직 아무것도 안 함
+ * grouped    : 학생이 직접 그룹을 묶음 (아직 중심점 없음). initFromGroups 로만 만들어진다
  * centroids  : 중심점이 만들어짐 (아직 배정 전)
  * assigned   : 가까운 중심점으로 그룹 배정 완료
  * moved      : 중심점이 그룹 평균으로 이동 완료 (다시 배정 필요)
  * converged  : 더 이상 바뀌지 않음 (또는 최대 반복에 도달)
  */
-export type Phase = "ready" | "centroids" | "assigned" | "moved" | "converged";
+export type Phase = "ready" | "grouped" | "centroids" | "assigned" | "moved" | "converged";
 
 export type StepAction = "centroids" | "assign" | "move";
 

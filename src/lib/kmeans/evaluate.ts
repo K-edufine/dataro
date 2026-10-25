@@ -1,4 +1,4 @@
-import { init, runToEnd, type InitOptions } from "./kmeans";
+import { init, initFromGroups, runToEnd, type InitOptions } from "./kmeans";
 import { normalizeValue } from "./normalize";
 import type { KMeansState, Point } from "./types";
 
@@ -58,6 +58,15 @@ export function groupMetrics(state: KMeansState): GroupMetrics[] {
   });
 }
 
+/** 학생이 고르는 판단과 같은 말로 컴퓨터 판정을 낸다. wide=넓어요, good=알맞아요, split=잘게 나눴어요 */
+export type Judgment = "wide" | "good" | "split";
+
+export function computerJudgment(ev: Pick<KEvaluation, "issues">): Judgment {
+  if (ev.issues.includes("wide")) return "wide";
+  if (ev.issues.includes("single")) return "split";
+  return "good";
+}
+
 /** 배정이 끝난 상태(assigned 이후)를 평가한다. */
 export function evaluate(state: KMeansState, wideLimit = WIDE_RADIUS_LIMIT): KEvaluation {
   const groups = groupMetrics(state);
@@ -68,6 +77,15 @@ export function evaluate(state: KMeansState, wideLimit = WIDE_RADIUS_LIMIT): KEv
   if (groups.some((g) => g.radius > wideLimit)) issues.push("wide");
   if (groups.filter((g) => g.count === 1).length > MAX_SINGLE_GROUPS) issues.push("single");
   return { k: state.k, state, groups, meanDistance, maxRadius, issues };
+}
+
+/** 학생이 묶은 그룹에서 시작해 끝까지 군집화한 뒤 평가한다. */
+export function evaluateFromGroups(
+  points: readonly Point[],
+  groups: readonly number[],
+  options: InitOptions = {},
+): KEvaluation {
+  return evaluate(runToEnd(initFromGroups(points, groups, options)));
 }
 
 /** K를 정해 끝까지 군집화한 뒤 평가한다. 같은 입력·시드면 항상 같은 결과. */

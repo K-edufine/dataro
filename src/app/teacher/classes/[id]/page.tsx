@@ -7,6 +7,7 @@ import { getSupabase } from "@/lib/supabase/client";
 import type { ClassRow, StudentRow, SurveyRow } from "@/lib/supabase/types";
 import { LESSONS } from "@/lib/lessons";
 import { GRADE_BAND_LABEL, classLabel } from "@/lib/schools";
+import { JUDGMENT_ICON, K_ORDER, type Judgment } from "@/lib/k-trials";
 import { useTeacherGuard } from "@/lib/teacher";
 
 const POLL_MS = 10_000;
@@ -19,16 +20,18 @@ export default function TeacherClassPage() {
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [surveys, setSurveys] = useState<SurveyRow[]>([]);
   const [snackCounts, setSnackCounts] = useState<Record<string, number>>({});
+  const [trials, setTrials] = useState<{ student_id: string; k: number; judgment: Judgment }[]>([]);
   const [missing, setMissing] = useState(false);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     const db = getSupabase("teacher");
-    const [c, s, sv, sn] = await Promise.all([
+    const [c, s, sv, sn, kt] = await Promise.all([
       db.from("classes").select("*").eq("id", id).maybeSingle(),
       db.from("students").select("*").eq("class_id", id).order("created_at"),
       db.from("survey_responses").select("student_id, class_id, answers, consume_score, save_score").eq("class_id", id),
       db.from("snack_data").select("student_id").eq("class_id", id),
+      db.from("k_trials").select("student_id, k, judgment").eq("class_id", id),
     ]);
     if (!c.data) return setMissing(true);
     setCls(c.data as ClassRow);
@@ -37,6 +40,7 @@ export default function TeacherClassPage() {
     const counts: Record<string, number> = {};
     (sn.data ?? []).forEach((r: { student_id: string }) => (counts[r.student_id] = (counts[r.student_id] ?? 0) + 1));
     setSnackCounts(counts);
+    setTrials((kt.data as { student_id: string; k: number; judgment: Judgment }[]) ?? []);
   }, [id]);
 
   useEffect(() => {
@@ -133,7 +137,7 @@ export default function TeacherClassPage() {
       <section aria-label="학생 현황">
         <h2 className="mb-1 text-2xl font-extrabold">학생 현황</h2>
         <p className="mb-3 text-lg">
-          입장 <b>{students.length}</b>/{cls.student_count}명 · 간식 입력 <b>{students.filter((s) => snackCounts[s.id]).length}</b>명 · 설문 <b>{surveys.length}</b>명
+          입장 <b>{students.length}</b>/{cls.student_count}명 · 간식 입력 <b>{students.filter((s) => snackCounts[s.id]).length}</b>명 · K 판단 완료 <b>{students.filter((s) => K_ORDER.every((k) => trials.some((t) => t.student_id === s.id && t.k === k))).length}</b>명 · 설문 <b>{surveys.length}</b>명
         </p>
         <div className="overflow-x-auto rounded-3xl border-2 border-slate-200 bg-white">
           <table className="w-full text-left text-lg">
@@ -142,6 +146,7 @@ export default function TeacherClassPage() {
                 <th className="p-3">번호</th>
                 <th className="p-3">입장</th>
                 <th className="p-3">간식 선호도</th>
+                <th className="p-3">K 판단 (2·3·4·5)</th>
                 <th className="p-3">소비 점수</th>
                 <th className="p-3">저축 점수</th>
               </tr>
@@ -155,6 +160,14 @@ export default function TeacherClassPage() {
                     <td className="p-3 font-extrabold">{n}번 <span className="text-sm font-normal text-slate-500">({`s${n}`})</span></td>
                     <td className="p-3">{stu ? "✅" : "-"}</td>
                     <td className="p-3">{stu && snackCounts[stu.id] ? `${snackCounts[stu.id]}개` : "-"}</td>
+                    <td className="whitespace-nowrap p-3" title="✅ 알맞아요 · 🟥 넓어요 · 🧩 잘게 나눴어요">
+                      {stu
+                        ? K_ORDER.map((k) => {
+                            const t = trials.find((x) => x.student_id === stu.id && x.k === k);
+                            return <span key={k} className="mr-2">{t ? JUDGMENT_ICON[t.judgment] : "-"}</span>;
+                          })
+                        : "-"}
+                    </td>
                     <td className="p-3">{sv ? Number(sv.consume_score).toFixed(2) : "-"}</td>
                     <td className="p-3">{sv ? Number(sv.save_score).toFixed(2) : "-"}</td>
                   </tr>

@@ -8,7 +8,7 @@ interface Item {
 
 const W = 420;
 const H = 260;
-const M = { l: 56, r: 24, t: 24, b: 56 };
+const M = { l: 56, r: 28, t: 40, b: 56 };
 
 /** K를 늘렸을 때 평균 거리가 어떻게 줄어드는지 보여 주는 꺾은선 (고학년용) */
 export function KLineChart({ items, selectedK, onSelect }: { items: Item[]; selectedK: number; onSelect: (k: number) => void }) {

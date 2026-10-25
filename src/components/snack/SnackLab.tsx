@@ -23,6 +23,7 @@ const DEFAULT_K = 3;
 const DEFAULT_SEED = 1; // 같은 시드 = 항상 같은 시작 중심점
 
 const GUIDE: Record<Phase, string> = {
+  grouped: "",
   ready: "먼저 [중심점 생성]을 눌러 보세요. 별(★) 모양 중심점이 생겨요.",
   centroids: "별(★)이 그룹의 중심이에요. [가까운 그룹 배정]을 눌러 간식을 가장 가까운 별의 그룹으로 보내요.",
   assigned: "간식들이 가장 가까운 별의 색과 모양이 되었어요. [중심점 이동]을 눌러 별을 그룹의 한가운데로 옮겨요.",
@@ -31,6 +32,7 @@ const GUIDE: Record<Phase, string> = {
 };
 
 const TABLE_TITLE: Record<Phase, string> = {
+  grouped: "",
   ready: "",
   centroids: "별(중심점)의 위치",
   assigned: "그룹별 평균 (별은 아직 안 옮겼어요)",

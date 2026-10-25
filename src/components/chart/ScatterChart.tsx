@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import {
   clusterColor,
   shapePath,
@@ -15,6 +15,18 @@ export interface ChartPoint {
   y: number;
   /** 소속 그룹 번호. 아직 배정 전이면 -1 */
   cluster: number;
+  /** 점 옆에 항상 보여 줄 짧은 이름 (showLabels 일 때) */
+  shortLabel?: string;
+}
+
+/** 학생이 점을 직접 그룹에 묶는 모드. 사각형으로 드래그하거나 점을 눌러서 지정한다. */
+export interface PaintMode {
+  /** 지금 칠하는 그룹 번호 */
+  activeGroup: number;
+  /** 점 하나를 눌렀을 때 */
+  onTap: (id: string) => void;
+  /** 사각형으로 끌어서 선택했을 때 (안에 든 점들) */
+  onBox: (ids: string[]) => void;
 }
 
 /** 그룹의 넓이를 보여 주는 점선 타원. x, y 는 중심, rx, ry 는 반지름 (모두 원래 단위) */
@@ -46,6 +58,9 @@ interface Props {
   selectedIds?: string[];
   /** 내 점처럼 강조할 점 */
   highlightId?: string;
+  paint?: PaintMode;
+  /** 점 옆에 이름을 항상 보여 준다 (터치 화면에는 마우스 올리기가 없으므로) */
+  showLabels?: boolean;
 }
 
 const W = 800;
@@ -53,12 +68,18 @@ const H = 520;
 const M = { l: 84, r: 48, t: 28, b: 76 };
 const MERGE_DIST = 18; // 이 거리 안의 점은 "겹쳐 있다"고 본다
 const MAX_TIP_NAMES = 4;
+const DRAG_MIN = 10; // 이만큼 움직여야 "드래그"로 본다 (그래프 좌표 기준)
+const LABEL_H = 20;
 
 export function ScatterChart({
   points, regions = [], centroids = [], xDomain, yDomain, xTicks, yTicks, xLabel, yLabel,
-  formatX = String, formatY = String, onSelect, selectedIds = [], highlightId,
+  formatX = String, formatY = String, onSelect, selectedIds = [], highlightId, paint, showLabels = false,
 }: Props) {
   const clipId = useId();
+  const svgRef = useRef<SVGSVGElement>(null);
+  const drag = useRef<{ x0: number; y0: number; active: boolean } | null>(null);
+  const suppressClick = useRef(false);
+  const [box, setBox] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
   const [hoverGroup, setHoverGroup] = useState<{ ids: string[]; px: number; py: number } | null>(null);
 
   const sx = (v: number) => M.l + ((v - xDomain[0]) / (xDomain[1] - xDomain[0])) * (W - M.l - M.r);
@@ -81,13 +102,90 @@ export function ScatterChart({
     return { ids, px: me.px, py: me.py };
   }
 
+  /** 화면 좌표 → 그래프(viewBox) 좌표 */
+  function toView(e: React.PointerEvent): { x: number; y: number } | null {
+    const svg = svgRef.current;
+    const ctm = svg?.getScreenCTM();
+    if (!svg || !ctm) return null;
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const v = pt.matrixTransform(ctm.inverse());
+    return { x: v.x, y: v.y };
+  }
+
+  function onSvgDown(e: React.PointerEvent) {
+    if (!paint || (e.pointerType === "mouse" && e.button !== 0)) return;
+    const v = toView(e);
+    if (v) drag.current = { x0: v.x, y0: v.y, active: false };
+  }
+
+  function onSvgMove(e: React.PointerEvent) {
+    const d = drag.current;
+    if (!paint || !d) return;
+    const v = toView(e);
+    if (!v) return;
+    if (!d.active && Math.hypot(v.x - d.x0, v.y - d.y0) > DRAG_MIN) {
+      d.active = true;
+      svgRef.current?.setPointerCapture(e.pointerId); // 점 위에서 시작해도 끝까지 따라온다
+    }
+    if (d.active) setBox({ x0: d.x0, y0: d.y0, x1: v.x, y1: v.y });
+  }
+
+  function onSvgUp() {
+    const d = drag.current;
+    drag.current = null;
+    if (!paint || !d?.active || !box) {
+      setBox(null);
+      return;
+    }
+    const [lx, hx] = [Math.min(box.x0, box.x1), Math.max(box.x0, box.x1)];
+    const [ly, hy] = [Math.min(box.y0, box.y1), Math.max(box.y0, box.y1)];
+    const ids = placed.filter((p) => p.px >= lx && p.px <= hx && p.py >= ly && p.py <= hy).map((p) => p.id);
+    suppressClick.current = true; // 드래그가 끝날 때 생기는 클릭은 무시
+    setTimeout(() => (suppressClick.current = false), 0);
+    setBox(null);
+    if (ids.length > 0) paint.onBox(ids);
+  }
+
+  /** 이름표가 서로 겹치지 않게 오른쪽·왼쪽·위·아래 순으로 자리를 찾는다 */
+  const labelSpots = useMemo(() => {
+    if (!showLabels) return [];
+    // 점들도 미리 "차지한 자리"로 넣어서 이름표가 다른 점을 가리지 않게 한다
+    const taken: { x0: number; y0: number; x1: number; y1: number }[] = placed.map((p) => ({
+      x0: p.px - 13, y0: p.py - 13, x1: p.px + 13, y1: p.py + 13,
+    }));
+    const hits = (b: { x0: number; y0: number; x1: number; y1: number }) =>
+      b.x0 < M.l || b.x1 > W - 4 || b.y0 < M.t - 4 || b.y1 > H - M.b + 2 ||
+      taken.some((t) => b.x0 < t.x1 && b.x1 > t.x0 && b.y0 < t.y1 && b.y1 > t.y0);
+    return placed.map((p) => {
+      const text = p.shortLabel ?? p.label;
+      const w = text.length * 15 + 8;
+      const spots = [
+        { anchor: "start" as const, x: p.px + 16, y: p.py + 6, box: { x0: p.px + 14, y0: p.py - LABEL_H / 2, x1: p.px + 14 + w, y1: p.py + LABEL_H / 2 } },
+        { anchor: "end" as const, x: p.px - 16, y: p.py + 6, box: { x0: p.px - 14 - w, y0: p.py - LABEL_H / 2, x1: p.px - 14, y1: p.py + LABEL_H / 2 } },
+        { anchor: "middle" as const, x: p.px, y: p.py - 18, box: { x0: p.px - w / 2, y0: p.py - 18 - LABEL_H, x1: p.px + w / 2, y1: p.py - 18 } },
+        { anchor: "middle" as const, x: p.px, y: p.py + 34, box: { x0: p.px - w / 2, y0: p.py + 16, x1: p.px + w / 2, y1: p.py + 16 + LABEL_H } },
+      ];
+      const spot = spots.find((sp) => !hits(sp.box)) ?? spots[0];
+      taken.push(spot.box);
+      return { id: p.id, text, anchor: spot.anchor, x: spot.x, y: spot.y };
+    });
+  }, [placed, showLabels]);
+
   const labelOf = (id: string) => placed.find((p) => p.id === id)?.label ?? "";
 
   return (
     <div className="relative w-full select-none">
       <svg
+        ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
-        className="h-auto w-full rounded-3xl border-2 border-slate-200 bg-white"
+        className={`h-auto w-full rounded-3xl border-2 border-slate-200 bg-white ${paint ? "cursor-crosshair" : ""}`}
+        style={paint ? { touchAction: "none" } : undefined}
+        onPointerDown={onSvgDown}
+        onPointerMove={onSvgMove}
+        onPointerUp={onSvgUp}
+        onPointerCancel={onSvgUp}
         role="img"
         aria-label={`${xLabel}와 ${yLabel}로 그린 점 그래프`}
       >
@@ -149,11 +247,16 @@ export function ScatterChart({
               onPointerLeave={() => setHoverGroup(null)}
               onFocus={() => setHoverGroup(groupAt(p.id))}
               onBlur={() => setHoverGroup(null)}
-              onClick={() => onSelect?.(groupAt(p.id).ids)}
+              onClick={() => {
+                if (suppressClick.current) return;
+                if (paint) paint.onTap(p.id);
+                else onSelect?.(groupAt(p.id).ids);
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  onSelect?.(groupAt(p.id).ids);
+                  if (paint) paint.onTap(p.id);
+                  else onSelect?.(groupAt(p.id).ids);
                 }
               }}
             >
@@ -173,6 +276,27 @@ export function ScatterChart({
             </g>
           );
         })}
+
+        {/* 이름표 */}
+        {labelSpots.map((l) => (
+          <text
+            key={`label${l.id}`}
+            x={l.x} y={l.y} textAnchor={l.anchor} fontSize={17} fontWeight={700} fill="#1f2937"
+            stroke="#ffffff" strokeWidth={5} paintOrder="stroke" strokeLinejoin="round" pointerEvents="none"
+          >
+            {l.text}
+          </text>
+        ))}
+
+        {/* 끌어서 고르는 사각형 */}
+        {box && paint && (
+          <rect
+            x={Math.min(box.x0, box.x1)} y={Math.min(box.y0, box.y1)}
+            width={Math.abs(box.x1 - box.x0)} height={Math.abs(box.y1 - box.y0)}
+            fill={clusterColor(paint.activeGroup)} fillOpacity={0.15}
+            stroke={clusterColor(paint.activeGroup)} strokeWidth={3} strokeDasharray="8 5" pointerEvents="none"
+          />
+        )}
 
         {/* 중심점: 이동할 때 부드럽게 움직인다 */}
         {centroids.map((c, i) => (
