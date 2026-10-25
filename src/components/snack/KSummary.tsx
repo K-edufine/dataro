@@ -4,13 +4,15 @@ import { KLineChart } from "@/components/chart/KLineChart";
 import { Button } from "@/components/ui/Button";
 import { scaleText } from "@/lib/format";
 import { computerJudgment, toScale, type Judgment, type KEvaluation } from "@/lib/kmeans";
-import { JUDGMENT_ICON, JUDGMENT_LABEL } from "@/lib/k-trials";
+import { JUDGMENT_ICON, JUDGMENT_LABEL, type TrialMode } from "@/lib/k-trials";
 import type { GradeBand } from "@/lib/schools";
 
 export interface SummaryRow {
   k: number;
   ev: KEvaluation;
   judgment: Judgment;
+  /** 직접 묶었는지, 컴퓨터가 자동으로 묶었는지 */
+  mode: TrialMode;
 }
 
 /** 모든 K를 해 본 뒤 내 판단과 컴퓨터 판정을 한눈에 비교한다 */
@@ -18,6 +20,7 @@ export function KSummary({
   rows, gradeBand, onRedo,
 }: { rows: SummaryRow[]; gradeBand: GradeBand; onRedo: (k: number) => void }) {
   const same = rows.filter((r) => r.judgment === computerJudgment(r.ev)).length;
+  const showMode = rows.some((r) => r.mode === "auto");
   const goods = rows.filter((r) => r.judgment === "good").map((r) => r.k);
 
   return (
@@ -38,6 +41,7 @@ export function KSummary({
           <thead>
             <tr className="border-b-2 border-slate-200 text-base text-slate-600">
               <th className="py-2 pr-2">K</th>
+              {showMode && <th className="whitespace-nowrap py-2 pr-2">묶은 방법</th>}
               <th className="whitespace-nowrap py-2 pr-2">내 판단</th>
               <th className="whitespace-nowrap py-2 pr-2">컴퓨터</th>
               <th className="whitespace-nowrap py-2 pr-2">평균 거리</th>
@@ -51,6 +55,7 @@ export function KSummary({
               return (
                 <tr key={r.k} className="border-b border-slate-100">
                   <td className="py-2 pr-2 font-extrabold">K={r.k}</td>
+                  {showMode && <td className="whitespace-nowrap py-2 pr-2 font-bold">{r.mode === "manual" ? "✋ 직접" : "🤖 자동"}</td>}
                   <td className="whitespace-nowrap py-2 pr-2 font-bold">{JUDGMENT_ICON[r.judgment]} {JUDGMENT_LABEL[r.judgment]}</td>
                   <td className="whitespace-nowrap py-2 pr-2 font-bold">
                     {JUDGMENT_ICON[comp]} {JUDGMENT_LABEL[comp]} {comp === r.judgment ? "👍" : ""}

@@ -67,7 +67,7 @@ interface Props {
 
 const W = 800;
 const H = 520;
-const M = { l: 84, r: 48, t: 28, b: 76 };
+const M = { l: 106, r: 48, t: 28, b: 76 };
 const MERGE_DIST = 18; // 이 거리 안의 점은 "겹쳐 있다"고 본다
 const MAX_TIP_NAMES = 4;
 const DRAG_MIN = 10; // 이만큼 움직여야 "드래그"로 본다 (그래프 좌표 기준)
@@ -223,8 +223,8 @@ export function ScatterChart({
         <line x1={M.l} x2={M.l} y1={M.t} y2={H - M.b} stroke="#334155" strokeWidth={3} />
         <text x={(M.l + W - M.r) / 2} y={H - 14} textAnchor="middle" fontSize={24} fontWeight={700} fill="#1f2937">{xLabel}</text>
         <text
-          x={22} y={(M.t + H - M.b) / 2} textAnchor="middle" fontSize={24} fontWeight={700} fill="#1f2937"
-          transform={`rotate(-90 22 ${(M.t + H - M.b) / 2})`}
+          x={26} y={(M.t + H - M.b) / 2} textAnchor="middle" fontSize={24} fontWeight={700} fill="#1f2937"
+          transform={`rotate(-90 26 ${(M.t + H - M.b) / 2})`}
         >{yLabel}</text>
 
         {/* 그룹 넓이 (그래프 안쪽으로만 보이게 자른다) */}
@@ -353,9 +353,4 @@ export function ScatterChart({
   );
 }
 
-/** 눈금을 보기 좋은 간격으로 만든다 */
-export function niceTicks(min: number, max: number, step: number): number[] {
-  const out: number[] = [];
-  for (let v = Math.ceil(min / step) * step; v <= max + 1e-9; v += step) out.push(Math.round(v * 1000) / 1000);
-  return out;
-}
+export { niceTicks } from "@/lib/ticks";

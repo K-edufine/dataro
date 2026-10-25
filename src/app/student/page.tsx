@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { LinkButton } from "@/components/ui/Button";
-import { LESSONS } from "@/lib/lessons";
+import { MODE_LABEL, lessonsFor } from "@/lib/lessons";
 import { clearStudentSession, sessionLabel, useStudentSession } from "@/lib/student-session";
 import { useOpenLessons } from "@/lib/use-open-lessons";
 import { useMySurvey } from "@/lib/use-my-survey";
@@ -33,7 +33,7 @@ export default function StudentHome() {
       </header>
 
       <ul className="space-y-3">
-        {LESSONS.map((l) => {
+        {lessonsFor(session.gradeBand).map((l) => {
           const isOpen = open?.includes(l.n) ?? false;
           const canGo = isOpen && l.href;
           const status = open === null ? "…" : !isOpen ? "🔒 아직 닫혀 있어요" : l.href ? "열려 있어요" : "곧 만들어져요";
@@ -41,9 +41,9 @@ export default function StudentHome() {
             <>
               <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-white text-2xl font-extrabold">{l.n}</span>
               <span className="flex-1 text-left">
-                <span className="block text-sm text-slate-600">{l.n}차시 · {l.mode === "snack" ? "간식 모드" : "성향 모드"}</span>
+                <span className="block text-sm text-slate-600">{l.n}차시 · {MODE_LABEL[l.mode]}</span>
                 <span className="block text-xl font-extrabold">{l.title}</span>
-                {l.n === 6 && surveyLoaded && (
+                {session.gradeBand === "low" && l.n === 6 && surveyLoaded && (
                   <span className="mt-0.5 block text-base font-bold text-slate-700">
                     {survey ? `내 점수: 소비 ${Math.round(survey.consume)} · 저축 ${Math.round(survey.save)}` : "아직 설문을 안 했어요"}
                   </span>

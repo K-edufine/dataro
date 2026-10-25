@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { KLab } from "./KLab";
+import { snackSpec, type Item } from "@/lib/dataset";
 import { LinkButton } from "@/components/ui/Button";
 import { LessonGate } from "@/components/student/LessonGate";
-import { loadKTrials, type SavedTrial } from "@/lib/k-trials";
+import { K_ORDER, loadKTrials, type SavedTrial } from "@/lib/k-trials";
 import { loadMySnacks } from "@/lib/snack-db";
 import type { StudentSession } from "@/lib/student-session";
 import type { Snack } from "@/types/snack";
@@ -42,12 +43,22 @@ function Loader({ session }: { session: StudentSession }) {
       </Message>
     );
   }
+  return <Ready session={session} snacks={data.snacks} trials={data.trials} />;
+}
+
+function Ready({ session, snacks, trials }: { session: StudentSession; snacks: Snack[]; trials: SavedTrial[] }) {
+  const items = useMemo<Item[]>(() => snacks.map((s) => ({ id: s.id, name: s.name, x: s.price, y: s.taste })), [snacks]);
+  const spec = useMemo(() => snackSpec(items), [items]);
+  const ks = useMemo(() => K_ORDER.filter((k) => k <= items.length), [items.length]);
   return (
     <KLab
       session={session}
-      snacks={data.snacks}
-      saved={data.trials}
+      items={items}
+      spec={spec}
+      saved={trials}
       title={`내 간식 군집 분석 (${session.anonCode})`}
+      ks={ks}
+      policy="all"
     />
   );
 }

@@ -5,9 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabase/client";
 import type { ClassRow, StudentRow, SurveyRow } from "@/lib/supabase/types";
-import { LESSONS } from "@/lib/lessons";
+import { lessonsFor } from "@/lib/lessons";
 import { GRADE_BAND_LABEL, classLabel } from "@/lib/schools";
-import { JUDGMENT_ICON, K_ORDER, type Judgment } from "@/lib/k-trials";
+import { CLIMATE_COUNT, MIN_FOR_ANALYSIS } from "@/lib/climate";
+import { JUDGMENT_ICON, kOrderFor, type Judgment } from "@/lib/k-trials";
 import { useTeacherGuard } from "@/lib/teacher";
 
 const POLL_MS = 10_000;
@@ -20,18 +21,20 @@ export default function TeacherClassPage() {
   const [students, setStudents] = useState<StudentRow[]>([]);
   const [surveys, setSurveys] = useState<SurveyRow[]>([]);
   const [snackCounts, setSnackCounts] = useState<Record<string, number>>({});
+  const [climateCounts, setClimateCounts] = useState<Record<string, number>>({});
   const [trials, setTrials] = useState<{ student_id: string; k: number; judgment: Judgment }[]>([]);
   const [missing, setMissing] = useState(false);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
     const db = getSupabase("teacher");
-    const [c, s, sv, sn, kt] = await Promise.all([
+    const [c, s, sv, sn, kt, cl] = await Promise.all([
       db.from("classes").select("*").eq("id", id).maybeSingle(),
       db.from("students").select("*").eq("class_id", id).order("created_at"),
       db.from("survey_responses").select("student_id, class_id, answers, consume_score, save_score").eq("class_id", id),
       db.from("snack_data").select("student_id").eq("class_id", id),
       db.from("k_trials").select("student_id, k, judgment").eq("class_id", id),
+      db.from("climate_data").select("student_id").eq("class_id", id),
     ]);
     if (!c.data) return setMissing(true);
     setCls(c.data as ClassRow);
@@ -40,6 +43,9 @@ export default function TeacherClassPage() {
     const counts: Record<string, number> = {};
     (sn.data ?? []).forEach((r: { student_id: string }) => (counts[r.student_id] = (counts[r.student_id] ?? 0) + 1));
     setSnackCounts(counts);
+    const climate: Record<string, number> = {};
+    (cl.data ?? []).forEach((r: { student_id: string }) => (climate[r.student_id] = (climate[r.student_id] ?? 0) + 1));
+    setClimateCounts(climate);
     setTrials((kt.data as { student_id: string; k: number; judgment: Judgment }[]) ?? []);
   }, [id]);
 
@@ -87,6 +93,8 @@ export default function TeacherClassPage() {
   }
   if (!ready || !cls) return <main className="p-6 text-xl">불러오는 중…</main>;
 
+  const high = cls.grade_band === "high";
+  const ks = kOrderFor(cls.grade_band);
   const surveyOf = (sid: string) => surveys.find((x) => x.student_id === sid);
 
   return (
@@ -106,7 +114,7 @@ export default function TeacherClassPage() {
         <h2 className="mb-3 text-2xl font-extrabold">차시 열고 닫기</h2>
         <p className="mb-3 text-base text-slate-600">누르면 학생 화면에서 바로 열리고 닫혀요. (학생 화면은 10초마다 새로 확인해요)</p>
         <ul className="grid gap-3 sm:grid-cols-2">
-          {LESSONS.map((l) => {
+          {lessonsFor(cls.grade_band).map((l) => {
             const on = cls.open_lessons.includes(l.n);
             return (
               <li key={l.n}>
@@ -132,6 +140,16 @@ export default function TeacherClassPage() {
           })}
         </ul>
         {error && <p className="mt-2 font-bold text-rose-600" role="alert">{error}</p>}
+        {high && (
+          <Link
+            href={`/teacher/classes/${cls.id}/climate`}
+            className="mt-3 flex min-h-16 items-center justify-between gap-3 rounded-3xl bg-sky-600 px-5 text-xl font-extrabold text-white shadow-md transition active:scale-[0.98]"
+          >
+            <span>기후 데이터 확인하기 (입력 현황·의심 값)</span>
+            <span aria-hidden>→</span>
+          </Link>
+        )}
+        {!high && (<>
         <Link
           href={`/teacher/classes/${cls.id}/cluster`}
           className="mt-3 flex min-h-16 items-center justify-between gap-3 rounded-3xl bg-sky-600 px-5 text-xl font-extrabold text-white shadow-md transition active:scale-[0.98]"
@@ -146,12 +164,20 @@ export default function TeacherClassPage() {
           <span>8·9차시 선택 변화와 성찰 보기 (전자칠판용)</span>
           <span aria-hidden>→</span>
         </Link>
+        </>)}
       </section>
 
       <section aria-label="학생 현황">
         <h2 className="mb-1 text-2xl font-extrabold">학생 현황</h2>
         <p className="mb-3 text-lg">
-          입장 <b>{students.length}</b>/{cls.student_count}명 · 간식 입력 <b>{students.filter((s) => snackCounts[s.id]).length}</b>명 · K 판단 완료 <b>{students.filter((s) => K_ORDER.every((k) => trials.some((t) => t.student_id === s.id && t.k === k))).length}</b>명 · 설문 <b>{surveys.length}</b>명
+          입장 <b>{students.length}</b>/{cls.student_count}명 ·{" "}
+          {high ? (
+            <>기후 데이터 {CLIMATE_COUNT}개 완성 <b>{students.filter((s) => (climateCounts[s.id] ?? 0) >= CLIMATE_COUNT).length}</b>명 · </>
+          ) : (
+            <>간식 입력 <b>{students.filter((s) => snackCounts[s.id]).length}</b>명 · </>
+          )}
+          K 판단 완료 <b>{students.filter((s) => ks.every((k) => trials.some((t) => t.student_id === s.id && t.k === k))).length}</b>명
+          {!high && <> · 설문 <b>{surveys.length}</b>명</>}
         </p>
         <div className="overflow-x-auto rounded-3xl border-2 border-slate-200 bg-white">
           <table className="w-full text-left text-lg">
@@ -159,10 +185,10 @@ export default function TeacherClassPage() {
               <tr>
                 <th className="p-3">번호</th>
                 <th className="p-3">입장</th>
-                <th className="p-3">간식 선호도</th>
-                <th className="p-3">K 판단 (2·3·4·5)</th>
-                <th className="p-3">소비 점수</th>
-                <th className="p-3">저축 점수</th>
+                <th className="whitespace-nowrap p-3">{high ? `기후 데이터 (${CLIMATE_COUNT}개 중)` : "간식 선호도"}</th>
+                <th className="whitespace-nowrap p-3">K 판단 ({ks.join("·")})</th>
+                {!high && <th className="p-3">소비 점수</th>}
+                {!high && <th className="p-3">저축 점수</th>}
               </tr>
             </thead>
             <tbody>
@@ -173,17 +199,21 @@ export default function TeacherClassPage() {
                   <tr key={n} className="border-t border-slate-100">
                     <td className="p-3 font-extrabold">{n}번 <span className="text-sm font-normal text-slate-500">({`s${n}`})</span></td>
                     <td className="p-3">{stu ? "✅" : "-"}</td>
-                    <td className="p-3">{stu && snackCounts[stu.id] ? `${snackCounts[stu.id]}개` : "-"}</td>
+                    <td className="whitespace-nowrap p-3">
+                      {high
+                        ? stu && climateCounts[stu.id] ? `${climateCounts[stu.id]}개${climateCounts[stu.id] < MIN_FOR_ANALYSIS ? " ⚠" : ""}` : "-"
+                        : stu && snackCounts[stu.id] ? `${snackCounts[stu.id]}개` : "-"}
+                    </td>
                     <td className="whitespace-nowrap p-3" title="✅ 알맞아요 · 🟥 넓어요 · 🧩 잘게 나눴어요">
                       {stu
-                        ? K_ORDER.map((k) => {
+                        ? ks.map((k) => {
                             const t = trials.find((x) => x.student_id === stu.id && x.k === k);
                             return <span key={k} className="mr-2">{t ? JUDGMENT_ICON[t.judgment] : "-"}</span>;
                           })
                         : "-"}
                     </td>
-                    <td className="p-3">{sv ? Math.round(Number(sv.consume_score)) : "-"}</td>
-                    <td className="p-3">{sv ? Math.round(Number(sv.save_score)) : "-"}</td>
+                    {!high && <td className="p-3">{sv ? Math.round(Number(sv.consume_score)) : "-"}</td>}
+                    {!high && <td className="p-3">{sv ? Math.round(Number(sv.save_score)) : "-"}</td>}
                   </tr>
                 );
               })}

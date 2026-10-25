@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { BackLink } from "@/components/ui/BackLink";
 import { ScatterChart, niceTicks, type ChartPoint } from "@/components/chart/ScatterChart";
 import {
-  CLUSTER_SHAPE_ICONS,
+  clusterIcon,
   clusterColor,
   defaultClusterName,
 } from "@/components/chart/cluster-style";
@@ -13,8 +13,9 @@ import {
   init, nextAction, runToEnd, step, summarize,
   type KMeansState, type Phase, type Point,
 } from "@/lib/kmeans";
-import { SnackDataTable } from "./SnackDataTable";
-import { SnackDetailCard } from "./SnackDetailCard";
+import { ItemDataTable } from "./ItemDataTable";
+import { ItemDetailCard } from "./ItemDetailCard";
+import { snackSpec, type Item } from "@/lib/dataset";
 import { preferenceText, won } from "@/lib/format";
 import type { Snack } from "@/types/snack";
 
@@ -92,10 +93,10 @@ export function SnackLab({ snacks, title }: { snacks: Snack[]; title: string }) 
     reset(k, nextSeed);
   }
 
+  const items: Item[] = useMemo(() => snacks.map((s) => ({ id: s.id, name: s.name, x: s.price, y: s.taste })), [snacks]);
+  const spec = useMemo(() => snackSpec(items), [items]);
+  const selectedItems = selectedIds.map((id) => items.find((i) => i.id === id)).filter((i): i is Item => !!i);
   const groupOf = (id: string) => km.assignments[snacks.findIndex((s) => s.id === id)];
-  const selectedSnacks = selectedIds
-    .map((id) => snacks.find((s) => s.id === id))
-    .filter((s): s is Snack => !!s);
 
   return (
     <main className="mx-auto max-w-[1500px] p-4 sm:p-6">
@@ -141,8 +142,9 @@ export function SnackLab({ snacks, title }: { snacks: Snack[]; title: string }) 
             점에 마우스를 올리거나 톡 눌러 보세요. 별(★)은 그룹의 중심점이에요.
           </p>
 
-          <SnackDetailCard
-            snacks={selectedSnacks}
+          <ItemDetailCard
+            items={selectedItems}
+            spec={spec}
             groupOf={groupOf}
             nameOf={nameOf}
             onClose={() => setSelectedIds([])}
@@ -216,7 +218,7 @@ export function SnackLab({ snacks, title }: { snacks: Snack[]; title: string }) 
                       <td className="py-2 pr-2">
                         <label className="flex items-center gap-2">
                           <span className="text-2xl" style={{ color: clusterColor(s.index) }} aria-hidden>
-                            {CLUSTER_SHAPE_ICONS[s.index % 5]}
+                            {clusterIcon(s.index)}
                           </span>
                           <input
                             value={names[s.index] ?? ""}
@@ -239,7 +241,7 @@ export function SnackLab({ snacks, title }: { snacks: Snack[]; title: string }) 
             </div>
           )}
 
-          <SnackDataTable snacks={snacks} assignments={km.assignments} nameOf={nameOf} />
+          <ItemDataTable items={items} spec={spec} assignments={km.assignments} nameOf={nameOf} />
         </section>
       </div>
     </main>

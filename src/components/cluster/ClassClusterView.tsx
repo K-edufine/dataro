@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ScatterChart, niceTicks, type ChartPoint } from "@/components/chart/ScatterChart";
-import { CLUSTER_SHAPE_ICONS, clusterColor, defaultClusterName } from "@/components/chart/cluster-style";
+import { clusterIcon, clusterColor, defaultClusterName } from "@/components/chart/cluster-style";
 import { Button } from "@/components/ui/Button";
 import { groupMeans, membersOf, type ClassClusterResult, type ScoreRow } from "@/lib/class-cluster";
 import {
@@ -132,7 +132,7 @@ export function ClassClusterView({ rows, results, myCode, initialNames = {}, onS
                       {" · "}소비 {r.consume}점{" · "}저축 {r.save}점
                       {g !== undefined && (
                         <span className="ml-2 font-bold" style={{ color: clusterColor(g) }}>
-                          {CLUSTER_SHAPE_ICONS[g % 5]} {nameOf(g)}
+                          {clusterIcon(g)} {nameOf(g)}
                         </span>
                       )}
                     </li>
@@ -159,7 +159,7 @@ export function ClassClusterView({ rows, results, myCode, initialNames = {}, onS
                 className={`space-y-2 rounded-3xl border-4 bg-white p-3 ${mine ? "border-rose-500" : "border-slate-200"}`}
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-3xl" style={{ color: clusterColor(g) }} aria-hidden>{CLUSTER_SHAPE_ICONS[g % 5]}</span>
+                  <span className="text-3xl" style={{ color: clusterColor(g) }} aria-hidden>{clusterIcon(g)}</span>
                   {onSaveNames ? (
                     <input
                       value={names[res.k]?.[g] ?? ""}

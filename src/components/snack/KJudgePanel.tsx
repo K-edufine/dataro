@@ -5,7 +5,7 @@ import { scaleText } from "@/lib/format";
 import {
   WIDE_RADIUS_LIMIT, computerJudgment, toScale, type Judgment, type KEvaluation,
 } from "@/lib/kmeans";
-import { JUDGMENT_HELP, JUDGMENT_ICON, JUDGMENT_LABEL } from "@/lib/k-trials";
+import { JUDGMENT_ICON, JUDGMENT_LABEL, judgmentHelp } from "@/lib/k-trials";
 
 const CHOICES: Judgment[] = ["wide", "good", "split"];
 
@@ -23,7 +23,7 @@ function reasonText(ev: KEvaluation): string {
 
 /** 학생이 직접 판단하고, 판단한 뒤에 컴퓨터 판정과 비교해 보여 주는 패널 */
 export function KJudgePanel({
-  ev, judgment, saving, error, isLast, onJudge, onNext, onRedo,
+  ev, judgment, saving, error, isLast, noun = "간식", redoLabel = "다시 묶어 보기", onJudge, onNext, onRedo,
 }: {
   ev: KEvaluation;
   /** 학생이 이미 고른 판단. 없으면 아직 판단 전 */
@@ -31,6 +31,9 @@ export function KJudgePanel({
   saving: boolean;
   error: string;
   isLast: boolean;
+  /** 다루는 점의 이름: "간식", "도시" */
+  noun?: string;
+  redoLabel?: string;
   onJudge: (j: Judgment) => void;
   onNext: () => void;
   onRedo: () => void;
@@ -45,7 +48,7 @@ export function KJudgePanel({
           ? <>K={k}로 묶은 결과를 보고, 그룹을 나눈 것이 어떤지 <span className="text-sky-700">내 생각</span>을 골라 보세요.</>
           : "내 판단을 저장했어요. 컴퓨터의 판정과 비교해 봐요."}
         <div className="mt-1 text-lg font-normal text-slate-700">
-          점선 동그라미(그룹 넓이)와 아래 표의 퍼진 정도·넓이를 참고해요.
+          점선 동그라미(그룹 넓이)와 표의 퍼진 정도·넓이를 참고해요.
         </div>
       </div>
 
@@ -66,7 +69,7 @@ export function KJudgePanel({
               <span className="text-4xl" aria-hidden>{JUDGMENT_ICON[j]}</span>
               <span>
                 <span className="block text-2xl font-extrabold">{JUDGMENT_LABEL[j]}</span>
-                <span className="block text-base text-slate-600">{JUDGMENT_HELP[j]}</span>
+                <span className="block text-base text-slate-600">{judgmentHelp(j, noun)}</span>
               </span>
               {mine && <span className="ml-auto rounded-full bg-sky-600 px-3 py-1 text-base font-extrabold text-white">내 판단</span>}
             </button>
@@ -94,7 +97,7 @@ export function KJudgePanel({
       )}
 
       <div className="flex flex-wrap gap-2">
-        <Button variant="ghost" onClick={onRedo}>다시 묶어 보기</Button>
+        <Button variant="ghost" onClick={onRedo}>{redoLabel}</Button>
         {judgment !== null && (
           <Button className="min-w-48 flex-1" onClick={onNext}>
             {isLast ? "모아 보기 ▶" : `다음 K 해 보기 ▶`}

@@ -1,0 +1,30 @@
+{
+  "_todo": "TODO: 임시 도시 목록입니다. 고학년 4차시에서 학생들이 기온·강수량을 입력할 25개 도시(국가·도시 미리 채움). 수업에서 쓸 목록이 정해지면 교체 예정. 개수를 바꾸면 입력 칸 수도 자동으로 바뀐다(최대 30)",
+  "cities": [
+    { "country": "대한민국", "city": "서울" },
+    { "country": "일본", "city": "도쿄" },
+    { "country": "중국", "city": "베이징" },
+    { "country": "싱가포르", "city": "싱가포르" },
+    { "country": "브라질", "city": "마나우스" },
+    { "country": "이집트", "city": "카이로" },
+    { "country": "사우디아라비아", "city": "리야드" },
+    { "country": "아랍에미리트", "city": "두바이" },
+    { "country": "영국", "city": "런던" },
+    { "country": "프랑스", "city": "파리" },
+    { "country": "독일", "city": "베를린" },
+    { "country": "러시아", "city": "모스크바" },
+    { "country": "노르웨이", "city": "오슬로" },
+    { "country": "아이슬란드", "city": "레이캬비크" },
+    { "country": "러시아", "city": "야쿠츠크" },
+    { "country": "미국", "city": "앵커리지" },
+    { "country": "이탈리아", "city": "로마" },
+    { "country": "그리스", "city": "아테네" },
+    { "country": "페루", "city": "리마" },
+    { "country": "케냐", "city": "나이로비" },
+    { "country": "인도", "city": "뭄바이" },
+    { "country": "태국", "city": "방콕" },
+    { "country": "호주", "city": "시드니" },
+    { "country": "아르헨티나", "city": "부에노스아이레스" },
+    { "country": "몽골", "city": "울란바토르" }
+  ]
+}

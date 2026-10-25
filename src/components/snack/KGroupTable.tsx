@@ -1,19 +1,23 @@
 "use client";
 
-import { CLUSTER_SHAPE_ICONS, clusterColor, defaultClusterName } from "@/components/chart/cluster-style";
-import { preferenceText, scaleText, won } from "@/lib/format";
+import { clusterColor, clusterIcon, defaultClusterName } from "@/components/chart/cluster-style";
+import type { DatasetSpec, Item } from "@/lib/dataset";
+import { scaleText } from "@/lib/format";
 import { WIDE_RADIUS_LIMIT, summarize, toScale, type KEvaluation } from "@/lib/kmeans";
 
-/** 그룹마다 이름 붙이기 + 개수·평균·퍼진 정도·넓이. reveal 이 false 면 "넓어요/좋아요" 같은 판정 말은 숨긴다. */
+/** 그룹마다 이름 붙이기 + 개수·평균·퍼진 정도·넓이·들어 있는 점들. reveal 이 false 면 "넓어요/좋아요" 같은 판정 말은 숨긴다. */
 export function KGroupTable({
-  ev, names, onName, reveal,
+  ev, items, spec, names, onName, reveal,
 }: {
   ev: KEvaluation;
+  items: Item[];
+  spec: DatasetSpec;
   names: Record<number, string>;
   onName: (cluster: number, value: string) => void;
   reveal: boolean;
 }) {
   const summaries = summarize(ev.state);
+  const nameById = new Map(items.map((i) => [i.id, i.name]));
   return (
     <div className="overflow-x-auto rounded-3xl border-2 border-slate-200 bg-white p-3">
       <h2 className="mb-2 text-xl font-extrabold">K={ev.state.k}로 묶은 그룹</h2>
@@ -22,8 +26,8 @@ export function KGroupTable({
           <tr className="border-b-2 border-slate-200 text-base text-slate-600">
             <th className="py-2 pr-2">그룹 이름</th>
             <th className="whitespace-nowrap py-2 pr-2">개수</th>
-            <th className="whitespace-nowrap py-2 pr-2">평균 가격</th>
-            <th className="whitespace-nowrap py-2 pr-2">평균 선호도</th>
+            <th className="whitespace-nowrap py-2 pr-2">평균 {spec.xName}</th>
+            <th className="whitespace-nowrap py-2 pr-2">평균 {spec.yName}</th>
             <th className="whitespace-nowrap py-2 pr-2">퍼진 정도</th>
             <th className="whitespace-nowrap py-2">넓이</th>
           </tr>
@@ -32,11 +36,11 @@ export function KGroupTable({
           {summaries.map((s) => {
             const g = ev.groups[s.index];
             const wide = g.radius > WIDE_RADIUS_LIMIT;
-            return (
-              <tr key={s.index} className="border-b border-slate-100">
+            return [
+              <tr key={s.index} className="border-t border-slate-100">
                 <td className="py-2 pr-2">
                   <label className="flex items-center gap-2">
-                    <span className="text-2xl" style={{ color: clusterColor(s.index) }} aria-hidden>{CLUSTER_SHAPE_ICONS[s.index % 5]}</span>
+                    <span className="text-2xl" style={{ color: clusterColor(s.index) }} aria-hidden>{clusterIcon(s.index)}</span>
                     <input
                       value={names[s.index] ?? ""}
                       placeholder={defaultClusterName(s.index)}
@@ -48,8 +52,8 @@ export function KGroupTable({
                   </label>
                 </td>
                 <td className="whitespace-nowrap py-2 pr-2 font-bold">{s.count}개</td>
-                <td className="whitespace-nowrap py-2 pr-2 font-bold">{won(s.meanX)}</td>
-                <td className="whitespace-nowrap py-2 pr-2 font-bold">{preferenceText(s.meanY)}</td>
+                <td className="whitespace-nowrap py-2 pr-2 font-bold">{spec.formatX(s.meanX)}</td>
+                <td className="whitespace-nowrap py-2 pr-2 font-bold">{spec.formatY(s.meanY)}</td>
                 <td className="py-2 pr-2">
                   <div className="flex items-center gap-2">
                     <div className="h-3 w-16 overflow-hidden rounded-full bg-slate-200">
@@ -62,13 +66,19 @@ export function KGroupTable({
                   {scaleText(toScale(g.radius))}
                   {reveal && (g.count === 1 ? " · 혼자예요" : wide ? " · ⚠ 넓어요" : " · 좋아요")}
                 </td>
-              </tr>
-            );
+              </tr>,
+              <tr key={`${s.index}-members`}>
+                <td colSpan={6} className="pb-2 text-base text-slate-700">
+                  <span className="font-bold">{spec.itemNoun}: </span>
+                  {s.memberIds.map((id) => nameById.get(id) ?? id).join(", ")}
+                </td>
+              </tr>,
+            ];
           })}
         </tbody>
       </table>
       <p className="mt-2 text-base text-slate-600">
-        거리는 가격과 선호도를 똑같은 0~10 눈금으로 바꿔서 쟀어요. <b>퍼진 정도</b>는 점들이 그룹 중심에서 떨어진 평균 거리이고,
+        거리는 {spec.xName}, {spec.yName} 두 값을 똑같은 0~10 눈금으로 바꿔서 쟀어요. <b>퍼진 정도</b>는 점들이 그룹 중심에서 떨어진 평균 거리이고,
         <b> 넓이</b>는 중심에서 가장 먼 점까지의 거리예요.
       </p>
     </div>
