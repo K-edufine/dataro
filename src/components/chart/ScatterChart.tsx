@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import {
   clusterColor,
   shapePath,
@@ -17,8 +17,20 @@ export interface ChartPoint {
   cluster: number;
 }
 
+/** 그룹의 넓이를 보여 주는 점선 타원. x, y 는 중심, rx, ry 는 반지름 (모두 원래 단위) */
+export interface ChartRegion {
+  cluster: number;
+  x: number;
+  y: number;
+  rx: number;
+  ry: number;
+  /** 너무 넓은 그룹이면 굵게 표시 */
+  wide?: boolean;
+}
+
 interface Props {
   points: ChartPoint[];
+  regions?: ChartRegion[];
   /** 원래 단위의 중심점 */
   centroids?: readonly (readonly [number, number])[];
   xDomain: [number, number];
@@ -43,12 +55,15 @@ const MERGE_DIST = 18; // 이 거리 안의 점은 "겹쳐 있다"고 본다
 const MAX_TIP_NAMES = 4;
 
 export function ScatterChart({
-  points, centroids = [], xDomain, yDomain, xTicks, yTicks, xLabel, yLabel,
+  points, regions = [], centroids = [], xDomain, yDomain, xTicks, yTicks, xLabel, yLabel,
   formatX = String, formatY = String, onSelect, selectedIds = [], highlightId,
 }: Props) {
+  const clipId = useId();
   const [hoverGroup, setHoverGroup] = useState<{ ids: string[]; px: number; py: number } | null>(null);
 
   const sx = (v: number) => M.l + ((v - xDomain[0]) / (xDomain[1] - xDomain[0])) * (W - M.l - M.r);
+  const xScale = (W - M.l - M.r) / (xDomain[1] - xDomain[0]);
+  const yScale = (H - M.t - M.b) / (yDomain[1] - yDomain[0]);
   const sy = (v: number) => H - M.b - ((v - yDomain[0]) / (yDomain[1] - yDomain[0])) * (H - M.t - M.b);
 
   const placed = useMemo(
@@ -96,6 +111,27 @@ export function ScatterChart({
           x={22} y={(M.t + H - M.b) / 2} textAnchor="middle" fontSize={24} fontWeight={700} fill="#1f2937"
           transform={`rotate(-90 22 ${(M.t + H - M.b) / 2})`}
         >{yLabel}</text>
+
+        {/* 그룹 넓이 (그래프 안쪽으로만 보이게 자른다) */}
+        <clipPath id={clipId}>
+          <rect x={M.l} y={M.t} width={W - M.l - M.r} height={H - M.t - M.b} />
+        </clipPath>
+        <g clipPath={`url(#${clipId})`} pointerEvents="none">
+          {regions.map((r) => (
+            <ellipse
+              key={`region${r.cluster}`}
+              cx={sx(r.x)}
+              cy={sy(r.y)}
+              rx={r.rx * xScale}
+              ry={r.ry * yScale}
+              fill={clusterColor(r.cluster)}
+              fillOpacity={0.1}
+              stroke={r.wide ? "#b91c1c" : clusterColor(r.cluster)}
+              strokeWidth={r.wide ? 5 : 3}
+              strokeDasharray={r.wide ? "4 5" : "10 7"}
+            />
+          ))}
+        </g>
 
         {/* 점 */}
         {placed.map((p) => {

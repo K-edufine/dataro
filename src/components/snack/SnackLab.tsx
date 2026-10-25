@@ -13,6 +13,9 @@ import {
   init, nextAction, runToEnd, step, summarize,
   type KMeansState, type Phase, type Point,
 } from "@/lib/kmeans";
+import { SnackDataTable } from "./SnackDataTable";
+import { SnackDetailCard } from "./SnackDetailCard";
+import { preferenceText, won } from "@/lib/format";
 import type { Snack } from "@/types/snack";
 
 const K_OPTIONS = [2, 3, 4, 5];
@@ -45,9 +48,6 @@ function toPoints(snacks: Snack[]): Point[] {
   return snacks.map((s) => ({ id: s.id, x: s.price, y: s.taste }));
 }
 
-const won = (v: number) => `${Math.round(v).toLocaleString("ko-KR")}원`;
-const score = (v: number) => `${v.toFixed(1)}점`;
-
 export function SnackLab({ snacks, title }: { snacks: Snack[]; title: string }) {
   const points = useMemo(() => toPoints(snacks), [snacks]);
   const [k, setK] = useState(DEFAULT_K);
@@ -55,7 +55,6 @@ export function SnackLab({ snacks, title }: { snacks: Snack[]; title: string }) 
   const [km, setKm] = useState<KMeansState>(() => init(points, DEFAULT_K, { seed: DEFAULT_SEED }));
   const [names, setNames] = useState<Record<number, string>>({});
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [showTable, setShowTable] = useState(false);
 
   const effectiveK = km.k; // 간식이 k개보다 적으면 줄어든다
   const action = nextAction(km);
@@ -68,7 +67,7 @@ export function SnackLab({ snacks, title }: { snacks: Snack[]; title: string }) 
 
   const chartPoints: ChartPoint[] = snacks.map((s, i) => ({
     id: s.id,
-    label: `${s.name} (${won(s.price)}, ${score(s.taste)})`,
+    label: `${s.name} (${won(s.price)}, ${preferenceText(s.taste)})`,
     x: s.price,
     y: s.taste,
     cluster: km.assignments[i],
@@ -131,7 +130,7 @@ export function SnackLab({ snacks, title }: { snacks: Snack[]; title: string }) 
             xTicks={xTicks}
             yTicks={[1, 2, 3, 4, 5]}
             xLabel="가격(원)"
-            yLabel="맛 점수(점)"
+            yLabel="선호도(점)"
             formatX={(v) => v.toLocaleString("ko-KR")}
             onSelect={(ids) => setSelectedIds(ids)}
             selectedIds={selectedIds}
@@ -140,32 +139,12 @@ export function SnackLab({ snacks, title }: { snacks: Snack[]; title: string }) 
             점에 마우스를 올리거나 톡 눌러 보세요. 별(★)은 그룹의 중심점이에요.
           </p>
 
-          {selectedSnacks.length > 0 && (
-            <div className="rounded-3xl border-2 border-slate-800 bg-white p-4 shadow-md" role="region" aria-label="간식 자세히 보기">
-              <div className="mb-2 flex items-center justify-between">
-                <h2 className="text-xl font-extrabold">
-                  {selectedSnacks.length > 1 ? `겹쳐 있는 간식 ${selectedSnacks.length}개` : "간식 자세히 보기"}
-                </h2>
-                <Button variant="ghost" className="min-h-12 px-4" onClick={() => setSelectedIds([])}>닫기</Button>
-              </div>
-              <ul className="space-y-2">
-                {selectedSnacks.map((s) => {
-                  const g = groupOf(s.id);
-                  return (
-                    <li key={s.id} className="rounded-2xl bg-slate-50 p-3 text-lg">
-                      <span className="font-extrabold">{s.name}</span>
-                      {" · "}가격 {won(s.price)}{" · "}맛 {score(s.taste)}
-                      {g >= 0 && (
-                        <span className="ml-2 font-bold" style={{ color: clusterColor(g) }}>
-                          {CLUSTER_SHAPE_ICONS[g % 5]} {nameOf(g)}
-                        </span>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
+          <SnackDetailCard
+            snacks={selectedSnacks}
+            groupOf={groupOf}
+            nameOf={nameOf}
+            onClose={() => setSelectedIds([])}
+          />
         </section>
 
         {/* 오른쪽: 단계 버튼, 안내, 표 */}
@@ -226,7 +205,7 @@ export function SnackLab({ snacks, title }: { snacks: Snack[]; title: string }) 
                     <th className="py-2 pr-2">그룹 이름</th>
                     <th className="whitespace-nowrap py-2 pr-2">개수</th>
                     <th className="whitespace-nowrap py-2 pr-2">평균 가격</th>
-                    <th className="whitespace-nowrap py-2">평균 맛</th>
+                    <th className="whitespace-nowrap py-2">평균 선호도</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -249,7 +228,7 @@ export function SnackLab({ snacks, title }: { snacks: Snack[]; title: string }) 
                       </td>
                       <td className="whitespace-nowrap py-2 pr-2 font-bold">{km.phase === "centroids" ? "-" : `${s.count}개`}</td>
                       <td className="whitespace-nowrap py-2 pr-2 font-bold">{won(s.meanX)}</td>
-                      <td className="whitespace-nowrap py-2 font-bold">{score(s.meanY)}</td>
+                      <td className="whitespace-nowrap py-2 font-bold">{preferenceText(s.meanY)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -258,38 +237,7 @@ export function SnackLab({ snacks, title }: { snacks: Snack[]; title: string }) 
             </div>
           )}
 
-          <Button variant="ghost" className="w-full" onClick={() => setShowTable(!showTable)} aria-expanded={showTable}>
-            {showTable ? "데이터 표 닫기" : "데이터 표 보기"}
-          </Button>
-          {showTable && (
-            <div className="max-h-96 overflow-auto rounded-3xl border-2 border-slate-200 bg-white p-3">
-              <table className="w-full text-left text-lg">
-                <thead className="sticky top-0 bg-white text-base text-slate-600">
-                  <tr className="border-b-2 border-slate-200">
-                    <th className="py-2 pr-2">간식</th>
-                    <th className="py-2 pr-2">가격</th>
-                    <th className="py-2 pr-2">맛 점수</th>
-                    <th className="py-2">그룹</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {snacks.map((s, i) => {
-                    const g = km.assignments[i];
-                    return (
-                      <tr key={s.id} className="border-b border-slate-100">
-                        <td className="py-2 pr-2 font-bold">{s.name}</td>
-                        <td className="py-2 pr-2">{won(s.price)}</td>
-                        <td className="py-2 pr-2">{score(s.taste)}</td>
-                        <td className="py-2 font-bold" style={{ color: g >= 0 ? clusterColor(g) : undefined }}>
-                          {g >= 0 ? `${CLUSTER_SHAPE_ICONS[g % 5]} ${nameOf(g)}` : "-"}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <SnackDataTable snacks={snacks} assignments={km.assignments} nameOf={nameOf} />
         </section>
       </div>
     </main>

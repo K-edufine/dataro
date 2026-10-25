@@ -1,5 +1,5 @@
-import { SnackInputForm } from "@/components/snack/SnackInputForm";
+import { PreferenceForm } from "@/components/snack/PreferenceForm";
 
 export default function SnackInputPage() {
-  return <SnackInputForm />;
+  return <PreferenceForm />;
 }

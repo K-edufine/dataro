@@ -8,7 +8,7 @@ export interface Lesson {
 
 export const LESSONS: Lesson[] = [
   { n: 3, title: "K-평균 원리 체험", mode: "snack", href: "/snack/common" },
-  { n: 4, title: "내 간식 데이터 만들기", mode: "snack", href: "/snack/input" },
+  { n: 4, title: "간식 선호도 입력하기", mode: "snack", href: "/snack/input" },
   { n: 5, title: "내 간식 군집 분석", mode: "snack", href: "/snack/mine" },
   { n: 6, title: "소비·저축 성향 설문", mode: "tendency", href: "/tendency/survey" },
   { n: 7, title: "학급 성향 군집화", mode: "tendency", href: null },
