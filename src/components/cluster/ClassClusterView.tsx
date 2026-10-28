@@ -48,7 +48,8 @@ export function ClassClusterView({ rows, results, myCode, initialNames = {}, onS
     cluster: res.assignments[r.anon_code] ?? -1,
   }));
 
-  const tickStep = AXIS_MAX - AXIS_MIN > 12 ? 4 : 2;
+  const span = AXIS_MAX - AXIS_MIN;
+  const tickStep = span > 12 ? (span % 6 === 0 ? 6 : 4) : 2;
   const selectedRows = selectedIds.map((id) => rows.find((r) => r.anon_code === id)).filter((r): r is ScoreRow => !!r);
 
   function setName(g: number, value: string) {

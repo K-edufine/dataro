@@ -13,7 +13,7 @@
     { "id": "c10", "name": "껌", "price": 1000, "taste": 2.5 },
     { "id": "c11", "name": "아이스크림", "price": 1500, "taste": 4.7 },
     { "id": "c12", "name": "초콜릿", "price": 2500, "taste": 4.5 },
-    { "id": "c13", "name": "과자 큰 봉지", "price": 4500, "taste": 4.0 },
+    { "id": "c13", "name": "소떡소떡", "price": 4500, "taste": 4.0 },
     { "id": "c14", "name": "도넛", "price": 3000, "taste": 4.6 },
     { "id": "c15", "name": "과일 컵", "price": 3500, "taste": 3.9 },
     { "id": "c16", "name": "요구르트", "price": 800, "taste": 3.3 },

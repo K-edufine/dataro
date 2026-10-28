@@ -92,7 +92,7 @@ function Survey({ session, previous }: { session: StudentSession; previous: MySu
       <section aria-live="polite" className="flex-1">
         <p className="mb-2 text-lg font-bold text-sky-700">질문 {index + 1}</p>
         <h2 className="mb-6 rounded-3xl bg-amber-50 p-6 text-3xl font-extrabold leading-snug">{q.text}</h2>
-        <div className="grid grid-cols-4 gap-2 sm:gap-3" role="radiogroup" aria-label="얼마나 그런가요?">
+        <div className="grid gap-2 sm:gap-3" style={{ gridTemplateColumns: `repeat(${SCALE_LABELS.length}, minmax(0, 1fr))` }} role="radiogroup" aria-label="얼마나 그런가요?">
           {SCALE_LABELS.map((s) => {
             const on = answers[index] === s.value;
             return (

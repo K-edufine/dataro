@@ -3,6 +3,8 @@ import survey from "@/data/survey.json";
 export type Axis = "consume" | "save";
 
 export interface Question {
+  /** 문항 번호 (CS1~, SV1~) */
+  code: string;
   text: string;
   axis: Axis;
 }
@@ -13,8 +15,8 @@ if (survey.consume.length !== survey.save.length) {
 
 /** 앞 절반이 소비, 뒤 절반이 저축 (DB 함수 submit_survey 와 같은 규칙) */
 export const QUESTIONS: Question[] = [
-  ...survey.consume.map((text): Question => ({ text, axis: "consume" })),
-  ...survey.save.map((text): Question => ({ text, axis: "save" })),
+  ...survey.consume.map((q): Question => ({ code: q.code, text: q.text, axis: "consume" })),
+  ...survey.save.map((q): Question => ({ code: q.code, text: q.text, axis: "save" })),
 ];
 
 export const SCALE_MIN = survey.scale.min;
@@ -27,13 +29,24 @@ export const AXIS_MAX = ITEMS_PER_AXIS * SCALE_MAX;
 /** 높음/낮음을 가르는 척도의 한가운데 (예: 10) */
 export const AXIS_MID = (AXIS_MIN + AXIS_MAX) / 2;
 
-/** 4점 척도: 가운데(보통)가 없다 */
-export const SCALE_LABELS = [
-  { value: 1, emoji: "😟", label: "전혀 아니야" },
-  { value: 2, emoji: "🙁", label: "아니야" },
-  { value: 3, emoji: "🙂", label: "그래" },
-  { value: 4, emoji: "😄", label: "매우 그래" },
-].filter((s) => s.value >= SCALE_MIN && s.value <= SCALE_MAX);
+/** 척도 보기. 5점은 가운데에 "보통이야"가 있고, 4점은 없다. */
+const LABELS: Record<number, { emoji: string; label: string }[]> = {
+  5: [
+    { emoji: "😟", label: "전혀 아니야" },
+    { emoji: "🙁", label: "아니야" },
+    { emoji: "😐", label: "보통이야" },
+    { emoji: "🙂", label: "그래" },
+    { emoji: "😄", label: "매우 그래" },
+  ],
+  4: [
+    { emoji: "😟", label: "전혀 아니야" },
+    { emoji: "🙁", label: "아니야" },
+    { emoji: "🙂", label: "그래" },
+    { emoji: "😄", label: "매우 그래" },
+  ],
+};
+
+export const SCALE_LABELS = (LABELS[SCALE_MAX - SCALE_MIN + 1] ?? LABELS[5]).map((l, i) => ({ value: SCALE_MIN + i, ...l }));
 
 /**
  * 축별 합계 = 소비 점수(X), 저축 점수(Y).
