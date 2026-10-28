@@ -3,7 +3,7 @@ import type { GradeBand } from "@/lib/schools";
 export interface Lesson {
   n: number;
   title: string;
-  mode: "snack" | "tendency" | "climate";
+  mode: "snack" | "tendency" | "climate" | "traffic";
   /** 아직 만들지 않은 차시는 null */
   href: string | null;
 }
@@ -20,10 +20,11 @@ export const LOW_LESSONS: Lesson[] = [
   { n: 10, title: "합리적 소비 기준", mode: "tendency", href: null },
 ];
 
-/** 고학년(5~6학년): 4·5차시만 쓴다 */
+/** 고학년(5~6학년): 4·5·6차시만 쓴다 */
 export const HIGH_LESSONS: Lesson[] = [
   { n: 4, title: "국가별 기후 데이터 입력하기", mode: "climate", href: "/climate/input" },
   { n: 5, title: "기후 군집 분석", mode: "climate", href: "/climate/analysis" },
+  { n: 6, title: "알맞은 K 찾기 (실루엣 계수)", mode: "traffic", href: "/traffic/analysis" },
 ];
 
 /** 학급의 학년군에 맞는 차시 목록 */
@@ -35,4 +36,5 @@ export const MODE_LABEL: Record<Lesson["mode"], string> = {
   snack: "간식 모드",
   tendency: "성향 모드",
   climate: "기후 모드",
+  traffic: "교통 모드",
 };

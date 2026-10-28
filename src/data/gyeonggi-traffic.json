@@ -1,0 +1,17 @@
+{
+  "_todo": "TODO: 연구회 제공 표준 표. 값이 바뀌면 이 파일만 고친다. x=대중교통사용비율(%), y=서울통행비율(%)",
+  "cities": [
+    { "name": "의정부시", "transit": 46, "seoul": 33.2 },
+    { "name": "고양시", "transit": 46.5, "seoul": 33 },
+    { "name": "부천시", "transit": 55.8, "seoul": 29 },
+    { "name": "성남시", "transit": 53.7, "seoul": 27.1 },
+    { "name": "김포시", "transit": 36.9, "seoul": 23.8 },
+    { "name": "양주시", "transit": 32.9, "seoul": 13 },
+    { "name": "시흥시", "transit": 30.2, "seoul": 9.9 },
+    { "name": "안산시", "transit": 32, "seoul": 7.8 },
+    { "name": "동두천시", "transit": 29.3, "seoul": 4.8 },
+    { "name": "가평군", "transit": 17.2, "seoul": 4.9 },
+    { "name": "여주시", "transit": 9.4, "seoul": 1 },
+    { "name": "연천군", "transit": 10, "seoul": 0.7 }
+  ]
+}
